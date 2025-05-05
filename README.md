@@ -131,8 +131,7 @@ This function generates a comparative graph between in-situ LST and AMSR-E brigh
 - Running the main script
 To run the analysis and generate the graphs, simply execute main.py in your Python environment after placing the necessary data files in the correct folder.
 
-
-``````python main.py``````
+```bash python main.py```
 
 - Generate Seasonal Graphs
 To generate seasonal graphs for FLUXNET stations and AMSR-E data, use the function **```plot_seasonal_temp_evolution()```** by providing the path to a CSV file as input.
