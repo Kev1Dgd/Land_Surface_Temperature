@@ -201,4 +201,4 @@ Results are saved in the ```outputs/``` directory as PNG graphs. The following s
 
 **Kevin DUGARD**  
 Intern at ENSEA, Cergy (France), Internship at UPC, Barcelona (Spain)
-Supervised by Mercè Vall-Llossera Ferran, UPC associate professor
+Supervised by **Mercè Vall-Llossera Ferran**, UPC associate professor
