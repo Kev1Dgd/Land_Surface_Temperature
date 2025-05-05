@@ -52,39 +52,45 @@ This project contributes to the development of L2 algorithms for the CIMR missio
 ```
 .
 ├── data/
-│   ├── processed/         # .hdf files converted to .csv
-│   │   ├── modis/ 
-│   │   ├── fluxnet/ 
-│   │   └── amsre
-│   ├── raw/               # .hdf files
-│   │   ├── modis/
-│   │   └── amsre
-├── notebooks/            # Jupyter notebooks for analysis and visualization
+│   ├── processed/         
+│   │   ├── modis/                        # .hdf MODIS files converted to .csv
+│   │   ├── fluxnet/    
+│   │   │   └── stations/                  # List of fluxnet stations with their coordinates
+│   │   └── amsre/
+│   │   │   ├── dates (YYYY - MM - DD)/   # Contains brightness temperatures when the orbit is ascending and descending
+│   │   │   └── matched /                  # Match brightness temperature and temperature for a specific station
+│   ├── raw/               
+│   │   ├── modis/                        # .hdf MODIS files
+│   │   ├── fluxnet/                      # Table of temperatures recorded at various stations
+│   │   └── amsre/                        # AMSR_E files (.hdf)
+├── docs/                                 # Useful references  for understanding the project
+├── notebooks/
+│   └── test.ipynb                        # Perform tests on pieces of code
 ├── outputs/
-│   ├── amsre/         
-│   ├── fluxnet/         
+│   ├── amsre/     
+│   │   ├── dates/                        # Contains maps with gloss temperatures and plotting of temperatures as a function of TB with linear regression (.png)
+│   ├── fluxnet/  
+│   │   ├── seasonal_evolution/           # Time trend in temperature for each station
+│   │   ├── seaonal_temp_tb/              # Comparison of temperature and TB over time
+│   │   └── stationswise_regression/      # Linear regression of temperature by station and overall
 │   └── modis/
 ├──src/
 │   ├── modis/
-│   │   ├── download.py         # Download data from modis
-│   │   ├── process.py          # Data processing
+│   │   ├── download.py                   # Download data from modis
+│   │   ├── process.py                    # Data processing
 │   │   └── utils.py      
-├── amsre/
-│   │   ├── download.py  
-│   │   ├── process.py   
-│   │   └── plot.py   
-├── fluxent/
-│   │   ├── availability.py  
-│   │   ├── filter.py 
-│   │   ├── load.py 
-│   │   ├── transform.py   
-│   │   └── utils.py    
-├── models/
-│   ├── regression.py       
-├── main.py
-├── docs/                 # Supporting documentation and references  
+│   ├── amsre/                                              
+│   │   ├── download.py                                        # Downloading data with earthaccess
+│   │   ├── generate_daily_matches.py                          # Match temperature and TB datas
+│   │   ├── match_tb_fluxnet.py                                # Return the file of the match (.csv)
+│   │   ├── plot_brightness_vs_temperature_and_regression.py    
+│   │   ├── plot_regressions.py                                 
+│   │   ├── plot_temp_evolution.py                             # Plot the temporal comparison of temperature and TB (.png)
+│   │   ├── plot.py                                            # Plot the TB map (.png)
+│   │   └── process.py                                         # data processing and backup (.csv)
+├── main.py                               # Supporting documentation and references  
 ├── requirements.txt
-└── README.md             # Project description
+└── README.md                             # Project description
 ```
 
 ## 🧑‍💻 Code Description
@@ -131,7 +137,9 @@ This function generates a comparative graph between in-situ LST and AMSR-E brigh
 - Running the main script
 To run the analysis and generate the graphs, simply execute main.py in your Python environment after placing the necessary data files in the correct folder.
 
-```bash python main.py```
+```bash 
+python main.py
+```
 
 - Generate Seasonal Graphs
 To generate seasonal graphs for FLUXNET stations and AMSR-E data, use the function **```plot_seasonal_temp_evolution()```** by providing the path to a CSV file as input.
@@ -139,7 +147,9 @@ To generate seasonal graphs for FLUXNET stations and AMSR-E data, use the functi
 ## ⚙️ Dependencies
 The required dependencies are listed in the requirements.txt file. To install the dependencies, run the following command in your terminal:
 
-``````pip install -r requirements.txt``````
+```bash 
+pip install -r requirements.txt
+```
 
 ## 📝 Execution Notes
 
