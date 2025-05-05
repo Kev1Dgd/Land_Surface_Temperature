@@ -87,11 +87,105 @@ This project contributes to the development of L2 algorithms for the CIMR missio
 └── README.md             # Project description
 ```
 
-## 📚 References
+## 🧑‍💻 Code Description
+### Main Script: ```main.py```
+The main script, main.py, integrates various steps of the project, including data processing, regression algorithm application, and graph generation. Here are the key functionalities:
+
+1. Data Processing:
+
+- Reading preprocessed AMSR-E, MODIS, and FLUXNET data.
+
+- Performing matching algorithms to associate surface temperature data with brightness temperature data.
+
+2. Graph Generation:
+
+- Visualizing seasonal temperature evolution using in-situ data and AMSR-E data.
+
+- Comparing AMSR-E brightness temperature with MODIS and FLUXNET LST.
+
+- Generating scatter plots and seasonal evolution graphs for different stations.
+
+3. Saving Results:
+
+- Generated graphs are saved in dedicated subfolders under ```outputs/fluxnet/seasonal_temp_tb```.
+
+### Modules and Functions
+```src/amsre/plot_temp_evolution.py```
+The ```plot_temp_evolution.py module``` is responsible for generating the graphs. Here are the main functions:
+
+1. ```plot_seasonal_temp_evolution()```
+This function generates seasonal temperature evolution graphs, comparing in-situ temperatures with AMSR-E temperatures.
+
+- It takes as input a CSV file containing surface temperatures and generates one graph per station, with temperature plotted against the day of the year (DOY).
+
+- If AMSR-E data is available, it overlays the AMSR-E brightness temperatures on top of the in-situ temperatures.
+
+2. ```plot_seasonal_temp_with_tb_evolution()```
+This function generates a comparative graph between in-situ LST and AMSR-E brightness temperature (37 GHz) over the entire period.
+
+- It uses matched data files in the data/processed/amsre/matched folder to compute daily averaged temperatures for each station.
+
+- It plots a seasonal evolution graph of in-situ LST temperatures against AMSR-E brightness temperatures, allowing you to visualize regression performance and fitting with MODIS data.
+
+#### Example Usage
+- Running the main script
+To run the analysis and generate the graphs, simply execute main.py in your Python environment after placing the necessary data files in the correct folder.
+
+
+``````python main.py``````
+
+- Generate Seasonal Graphs
+To generate seasonal graphs for FLUXNET stations and AMSR-E data, use the function **```plot_seasonal_temp_evolution()```** by providing the path to a CSV file as input.
+
+## ⚙️ Dependencies
+The required dependencies are listed in the requirements.txt file. To install the dependencies, run the following command in your terminal:
+
+``````pip install -r requirements.txt``````
+
+## 📝 Execution Notes
+
+### Error Handling
+When running the main script or generating graphs, the following issues may arise:
+
+- **Incorrect Date Format in CSV Files**:
+If a data file does not follow the expected date format (YYYYMMDD), the program will ignore it and display an error message indicating the problematic file.
+
+- **Missing Required Columns**:
+If a matched data file does not contain the necessary columns (brightness_temp_37v, temperature), it will be ignored, and an error message will be displayed.
+
+- **Outlier Data**:
+Filters are applied to remove temperature outliers (e.g., temperatures below 180 K or above 330 K).
+
+### Generated Graphs
+Seasonal Graphs for Each Station:
+Each station in the FLUXNET data will have a graph showing the evolution of temperature over the course of the year. If AMSR-E data is available, it will also be plotted for comparison.
+
+- **Comparative Seasonal Graph of LST and AMSR-E TB**:
+This graph compares the seasonal evolution of surface temperature estimated through regression (in-situ LST) with AMSR-E brightness temperature (37 GHz).
+
+## 📊 Results
+Results are saved in the ```outputs/``` directory as PNG graphs. The following subfolders are used for saving the results:
+
+- ```outputs/fluxnet/seasonal_temp_tb/``` : Graphs comparing LST temperatures with AMSR-E brightness temperatures for all stations.
+
+- ```outputs/fluxnet/seasonal_evolution/``` : Seasonal graphs for each individual station.
+
+## 🔧 Debugging & Contributions
+
+- If you encounter issues while running the scripts, here are some troubleshooting steps:
+
+- Ensure that the data files are correctly formatted and placed in the appropriate folders (```data/processed/amsre/matched``` and ```data/processed/modis```).
+
+- Make sure all dependencies are installed using pip install -r requirements.txt.
+
+- For any questions or suggestions for modification, feel free to open an issue on GitHub or contribute via pull request.
+
+## 📚 Additional References
 
 - [CIMRL2PAD-UVEG-TEC-RAS-D2 Technical Note](./docs/CIMRL2PAD-UVEG-TEC-RAS-D2.pdf) — describes R&D activities for CIMR L2 product algorithm development
 - Algorithm Theoretical Basis Documents (ATBDs) for AMSR-E and MODIS LST retrieval
 - Regression methodologies for passive microwave LST estimation
+
 
 ## 👤 Author
 
