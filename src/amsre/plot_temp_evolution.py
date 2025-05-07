@@ -126,3 +126,40 @@ def plot_seasonal_temp_with_tb_evolution(matched_folder="data/processed/amsre/ma
     plt.close()
 
     print(f"✅ Graph saved in : {output_file}")
+
+def plot_all_stations_temp_evolution(csv_path, output_path="outputs/fluxnet/seasonal_evolution/temp_by_station.png"):
+    # Lecture du fichier CSV
+    df = pd.read_csv(csv_path, sep=";")
+    
+    # Transformation en format long
+    df_long = df.melt(id_vars=["TIMESTAMP_START"], var_name="station", value_name="temperature")
+    
+    # Conversion des dates
+    df_long["TIMESTAMP_START"] = pd.to_datetime(df_long["TIMESTAMP_START"], format="%d/%m/%Y")
+    
+    # Nettoyage des températures
+    df_long["temperature"] = pd.to_numeric(df_long["temperature"], errors="coerce")
+    df_long = df_long.dropna(subset=["temperature"])
+    df_long = df_long[(df_long["temperature"] > 180) & (df_long["temperature"] < 330)]
+    
+    # Tracé
+    plt.figure(figsize=(14, 7))
+
+    for station in df_long["station"].unique():
+        df_station = df_long[df_long["station"] == station]
+        if len(df_station) < 10:
+            continue
+        plt.plot(df_station["TIMESTAMP_START"], df_station["temperature"], label=station, alpha=0.7)
+
+    plt.title("Évolution temporelle de la température par station")
+    plt.xlabel("Date")
+    plt.ylabel("Température (K)")
+    plt.legend(loc="upper right", fontsize="small", ncol=2)
+    plt.grid(True)
+    plt.tight_layout()
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+
+    print(f"✅ Graphe sauvegardé dans : {output_path}")

@@ -192,13 +192,12 @@ Results are saved in the ```outputs/``` directory as PNG graphs. The following s
 ## 📚 Additional References
 
 - [CIMRL2PAD-UVEG-TEC-RAS-D2 Technical Note](./docs/CIMRL2PAD-UVEG-TEC-RAS-D2.pdf) — describes R&D activities for CIMR L2 product algorithm development
-- [CIMR-MRD-v5.0-20230211 Requirements document](./docs/CIMR-MRD-v5.0-20230211_(Issued).pdf) - gives mission requirements
-- [Holmes_et_al_2009 Journal of Geophysical Research](./docs/Holmes_et_al_2009.pdf) - Explains the physical aspect of the project
-- [Jimenez_et_al_2017 Journal of Geophysical Research about Atmospheres](./docs/Jimenez_et_al_2017.pdf) - Explains the physical aspect of the project concerning the atmosphere
+- Algorithm Theoretical Basis Documents (ATBDs) for AMSR-E and MODIS LST retrieval
+- Regression methodologies for passive microwave LST estimation
 
 
 ## 👤 Author
 
 **Kevin DUGARD**  
 Intern at ENSEA, Cergy (France), Internship at UPC, Barcelona (Spain)
-Supervised by **Mercè Vall-Llossera Ferran**, UPC associate professor
+Supervised by Mercè Vall-Llossera Ferran, UPC associate professor

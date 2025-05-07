@@ -1,39 +1,69 @@
-from pyhdf.SD import SD, SDC
 import numpy as np
 import pandas as pd
-import os
-from .utils import convert_kelvin_to_celsius, clean_lst_data
+from pyhdf.SD import SD, SDC
 
-def load_modis_data(file_path):
-    """Load and scale LST data from a MODIS .hdf file."""
+def lat_lon_from_projection(x_dim, y_dim, upper_left, lower_right):
+    """
+    Calculer les coordonnées géographiques (latitude, longitude) de chaque pixel
+    en fonction des dimensions du grid et des coordonnées des coins du fichier.
+    """
+    # Extraire les informations des coins
+    x_min, y_max = upper_left
+    x_max, y_min = lower_right
+    
+    # Créer les coordonnées en x et y
+    x_coords = np.linspace(x_min, x_max, x_dim)
+    y_coords = np.linspace(y_max, y_min, y_dim)
+    
+    # Créer une grille de coordonnées (X, Y)
+    lon_grid, lat_grid = np.meshgrid(x_coords, y_coords)
+    
+    return lat_grid, lon_grid
+
+def extract_lst_from_hdf(hdf_file):
+    """Extraire les données LST, latitude et longitude à partir d'un fichier HDF."""
     try:
-        hdf = SD(file_path, SDC.READ)
-        lst_dataset = hdf.select('LST_Day_1km')
-        lst_data = lst_dataset[:].astype(np.float32)
-        lst_data = lst_data * 0.02 - 273.15  # MODIS scaling and Kelvin to °C
-        lst_data[lst_data == 0] = np.nan
-        return lst_data
+        hdf = SD(hdf_file, SDC.READ)
+        
+        # Extraire les données LST
+        lst_data = hdf.select('LST_Day_1km')[:]
+        
+        # Extraire les informations de projection
+        upper_left = hdf.attributes()['UpperLeftPointMtrs']
+        lower_right = hdf.attributes()['LowerRightMtrs']
+        
+        # Extraire latitude et longitude en utilisant la projection
+        lat_data, lon_data = lat_lon_from_projection(lst_data.shape[0], lst_data.shape[1], upper_left, lower_right)
+        
+        return lst_data, lat_data, lon_data
     except Exception as e:
-        print(f"PyHDF Error while loading {file_path}: {e}")
-        return None
+        print(f"Erreur lors de l'extraction des données : {e}")
+        return None, None, None
 
-def save_lst_to_csv(lst_data, output_file):
-    """Save LST array to CSV format."""
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
-    pd.DataFrame(lst_data).to_csv(output_file, index=False)
-    print(f"✅ Saved LST to {output_file}")
+def prepare_lst_data(lst_data, lat_data, lon_data):
+    """Transformer les données LST en un DataFrame."""
+    data_list = []
+    for i in range(len(lat_data)):
+        for j in range(len(lon_data[0])):
+            data_list.append([lat_data[i][j], lon_data[i][j], lst_data[i, j]])
+    
+    df = pd.DataFrame(data_list, columns=['Latitude', 'Longitude', 'LST'])
+    df['LST_Celsius'] = df['LST'] - 273.15  # Conversion en Celsius
+    return df
 
-def process_modis_files(input_dir="data/raw/modis", output_dir="data/processed/modis"):
-    """Process all .hdf files in the directory and save cleaned data to CSV."""
-    for file_name in os.listdir(input_dir):
-        if file_name.endswith(".hdf"):
-            file_path = os.path.join(input_dir, file_name)
-            print(f"📄 Processing {file_path}")
-            lst_data = load_modis_data(file_path)
-            if lst_data is not None:
-                lst_data = clean_lst_data(lst_data)
-                print(f"🌡️ Min: {np.nanmin(lst_data):.2f}°C, Max: {np.nanmax(lst_data):.2f}°C")
-                csv_name = f"lst_{os.path.splitext(file_name)[0]}.csv"
-                save_lst_to_csv(lst_data, os.path.join(output_dir, csv_name))
-            else:
-                print(f"⚠️ Skipped {file_name} due to read error.")
+def save_lst_to_csv(df, output_file):
+    """Sauvegarder les données LST dans un fichier CSV."""
+    try:
+        df.to_csv(output_file, index=False)
+        print(f"Fichier CSV sauvegardé : {output_file}")
+    except Exception as e:
+        print(f"Erreur lors de la sauvegarde du fichier CSV : {e}")
+
+def process_hdf_to_csv(hdf_file, output_file):
+    """Fonction principale pour traiter un fichier HDF en CSV."""
+    print(f"Traitement du fichier HDF : {hdf_file}")
+    lst_data, lat_data, lon_data = extract_lst_from_hdf(hdf_file)
+    if lst_data is None or lat_data is None or lon_data is None:
+        return
+    df = prepare_lst_data(lst_data, lat_data, lon_data)
+    save_lst_to_csv(df, output_file)
