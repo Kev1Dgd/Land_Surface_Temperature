@@ -52,13 +52,17 @@ This project contributes to the development of L2 algorithms for the CIMR missio
 ```
 .
 ├── data/
+│   ├── analysis/                         # Contains model values that may be of interest
+│   │   ├── modis/                        
+│   │   ├── fluxnet/    
+│   │   └── amsre/
 │   ├── processed/         
 │   │   ├── modis/                        # .hdf MODIS files converted to .csv
 │   │   ├── fluxnet/    
-│   │   │   └── stations/                  # List of fluxnet stations with their coordinates
+│   │   │   └── stations.csv              # List of fluxnet stations with their coordinates
 │   │   └── amsre/
 │   │   │   ├── dates (YYYY - MM - DD)/   # Contains brightness temperatures when the orbit is ascending and descending
-│   │   │   └── matched /                  # Match brightness temperature and temperature for a specific station
+│   │   │   └── matched /                 # Match brightness temperature and temperature for a specific station
 │   ├── raw/               
 │   │   ├── modis/                        # .hdf MODIS files
 │   │   ├── fluxnet/                      # Table of temperatures recorded at various stations
@@ -69,6 +73,7 @@ This project contributes to the development of L2 algorithms for the CIMR missio
 ├── outputs/
 │   ├── amsre/     
 │   │   ├── dates/                        # Contains maps with gloss temperatures and plotting of temperatures as a function of TB with linear regression (.png)
+│   │   ├── stations/                     # Contains linear regressions for each station
 │   ├── fluxnet/  
 │   │   ├── seasonal_evolution/           # Time trend in temperature for each station
 │   │   ├── seaonal_temp_tb/              # Comparison of temperature and TB over time
@@ -78,16 +83,16 @@ This project contributes to the development of L2 algorithms for the CIMR missio
 │   ├── modis/
 │   │   ├── download.py                   # Download data from modis
 │   │   ├── process.py                    # Data processing
+│   │   ├── analyze.py                    # Gather statistics for spatial and monthly analysis
+│   │   ├── analysis_utils.py                    
 │   │   └── utils.py      
 │   ├── amsre/                                              
-│   │   ├── download.py                                        # Downloading data with earthaccess
-│   │   ├── generate_daily_matches.py                          # Match temperature and TB datas
-│   │   ├── match_tb_fluxnet.py                                # Return the file of the match (.csv)
-│   │   ├── plot_brightness_vs_temperature_and_regression.py    
+│   │   ├── download.py                   # Downloading data with earthaccess
+│   │   ├── matches.py                    # Return the file of the match (.csv)   
 │   │   ├── plot_regressions.py                                 
-│   │   ├── plot_temp_evolution.py                             # Plot the temporal comparison of temperature and TB (.png)
-│   │   ├── plot.py                                            # Plot the TB map (.png)
-│   │   └── process.py                                         # data processing and backup (.csv)
+│   │   ├── plot_temp_evolution.py        # Plot the temporal comparison of temperature and TB (.png)
+│   │   ├── plot.py                       # Plot the TB map (.png)
+│   │   └── process.py                    # data processing and backup (.csv)
 ├── main.py                               # Supporting documentation and references  
 ├── requirements.txt
 └── README.md                             # Project description

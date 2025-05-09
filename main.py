@@ -14,7 +14,7 @@ from src.amsre.plot import plot_bt_map
 from src.amsre.process import combine_amsre_files_37ghz, combine_amsre_files_19ghz
 
 from src.amsre.matches import generate_daily_matches
-from src.amsre.plot_regressions import plot_stationwise_and_global_regressions_2005, plot_global_tb_vs_temp, plot_brightness_vs_temperature_and_regression, fit_daily_regressions, plot_station_regressions
+from src.amsre.plot_regressions import plot_stationwise_and_global_regressions_2005, plot_global_tb_vs_temp, plot_brightness_vs_temperature_and_regression, fit_daily_regressions, plot_station_regressions, plot_regression_metrics_evolution
 from src.amsre.plot_temp_evolution import plot_seasonal_temp_evolution, plot_seasonal_temp_with_tb_evolution, plot_all_stations_temp_evolution
 
 
@@ -71,7 +71,7 @@ def main():
     
     print("\n===== AMSR-E stage: TB 37GHz processing =====")
     start_date = datetime(2005, 1, 1)
-    end_date = datetime(2005, 1, 5)
+    end_date = datetime(2005, 5, 31)
     dates = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
     authenticate()
 
@@ -83,7 +83,7 @@ def main():
         output_ascending, output_descending = combine_amsre_files_37ghz(files, date=date)
 
         # Load data and generate maps
-        if output_ascending and output_descending:
+        '''if output_ascending and output_descending:
             # Loading renamed files
             df_ascending = pd.read_csv(output_ascending)
             df_descending = pd.read_csv(output_descending)
@@ -139,11 +139,11 @@ def main():
                 else : 
                     print("\n✅ Combined map already generated\n")
 
-        print(f"Treatment completed for date : {date}\n")
+        print(f"Treatment completed for date : {date}\n")'''
     
     print("\n===== END of AMSR-E TB 37GHz processing =====")
 
-    print("\n===== AMSR-E stage: TB 19GHz processing =====")
+    '''print("\n===== AMSR-E stage: TB 19GHz processing =====")
 
     for date in dates:
         # Filter only .hdf files
@@ -206,15 +206,15 @@ def main():
                 else:
                     print("\n✅ Combined 19GHz map already generated\n")
 
-        print(f"Treatment completed for 19GHz - date : {date}\n")
+        print(f"Treatment completed for 19GHz - date : {date}\n")'''
 
 
-    '''
+    
     print("\n===== FLUXNET =====")
     # Parameters
     fluxnet_path = "data/raw/fluxnet/FluxNET_AMSRE.csv"
     coords_path = "data/processed/fluxnet/fluxnet_station_coordinates.csv"
-    tb_folder = "data/processed/amsre/"
+    tb_folder = "data/processed/amsre/dates"
     matched_output_folder = "data/processed/amsre/matched"
 
     # Load FLUXNET once
@@ -267,6 +267,8 @@ def main():
     print("\n===== Daily regression TB vs Temperature (multi-day) =====")
     output_regression_csv = "data/analysis/amsre/daily_regressions.csv"
     fit_daily_regressions(matched_output_folder, output_regression_csv)
+    plot_regression_metrics_evolution(output_regression_csv)
+
     plot_global_tb_vs_temp("data/processed/amsre/matched")
 
 
@@ -314,7 +316,7 @@ def main():
         plot_all_stations_temp_evolution("data/raw/fluxnet/FluxNET_AMSRE.csv")
     else:
         print("⏭️ All temp graphic already generated, skip.")
-    '''
+    
 
 if __name__ == "__main__":
     main()

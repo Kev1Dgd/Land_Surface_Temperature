@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
 import numpy as np
 import os
 from datetime import datetime  
@@ -78,18 +79,24 @@ def fit_daily_regressions(folder_path, output_csv_path):
 
                 model = LinearRegression()
                 model.fit(X, y)
+                y_pred = model.predict(X)
 
                 a = model.coef_[0][0]
                 b = model.intercept_[0]
                 r2 = model.score(X, y)
+
+                rmse = rmse = np.sqrt(mean_squared_error(y, y_pred))
+                print(f"Mean squared error : {rmse}")
 
                 results.append({
                     "date": date_str,
                     "a": a,
                     "b": b,
                     "r2": r2,
+                    "rmse": rmse,
                     "n_points": len(df)
                 })
+
 
     # Save results in a CSV file
     df_results = pd.DataFrame(results)
@@ -170,6 +177,9 @@ def plot_stationwise_and_global_regressions_2005(csv_path, output_dir="outputs/f
         model = LinearRegression()
         model.fit(X, y)
         y_pred = model.predict(X)
+
+        
+
 
         # Saving points for global regression
         all_X.append(X)
@@ -271,4 +281,26 @@ def plot_station_regressions(df_matched, output_dir="outputs/amsre/stations"):
         output_path = os.path.join(output_dir, f"regression_tb_vs_temp_{station}.png")
         plt.savefig(output_path)
         plt.close()
+
+
+def plot_regression_metrics_evolution(regression_csv_path, output_path="outputs/amsre/regression_metrics_evolution.png"):
+    df = pd.read_csv(regression_csv_path)
+    df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
+
+    plt.figure(figsize=(12, 6))
+
+    # On trace les trois courbes sur le même graphe
+    plt.plot(df["date"], df["a"], label="Pente (a)", color="blue")
+    plt.plot(df["date"], df["r2"], label="R²", color="green")
+    plt.plot(df["date"], df["rmse"], label="RMSE", color="red")
+
+    plt.title("Évolution temporelle des métriques de régression")
+    plt.xlabel("Date")
+    plt.ylabel("Valeurs")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+    print(f"✅ Graphe des métriques sauvegardé : {output_path}")
 

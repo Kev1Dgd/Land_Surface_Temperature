@@ -8,7 +8,7 @@ def authenticate():
 
 def download_amsre_ae_l2a(date="2005-07-01", output_dir="data/raw/amsre"):
     """Download AE_L2A files for a given date"""
-    print(f"🔍 Search AMSR-E AE_L2A data for {date}")
+    print(f"\n🔍 Search AMSR-E AE_L2A data for {date}")
     #authenticate()
     results = search_data(
         short_name="AE_L2A",
