@@ -70,8 +70,8 @@ def main():
     
     
     print("\n===== AMSR-E stage: TB 37GHz processing =====")
-    start_date = datetime(2005, 1, 1)
-    end_date = datetime(2005, 5, 31)
+    start_date = datetime(2005, 1, 24)
+    end_date = datetime(2005, 2, 24)
     dates = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
     authenticate()
 
@@ -83,7 +83,7 @@ def main():
         output_ascending, output_descending = combine_amsre_files_37ghz(files, date=date)
 
         # Load data and generate maps
-        '''if output_ascending and output_descending:
+        if output_ascending and output_descending:
             # Loading renamed files
             df_ascending = pd.read_csv(output_ascending)
             df_descending = pd.read_csv(output_descending)
@@ -139,7 +139,7 @@ def main():
                 else : 
                     print("\n✅ Combined map already generated\n")
 
-        print(f"Treatment completed for date : {date}\n")'''
+        print(f"Treatment completed for date : {date}\n")
     
     print("\n===== END of AMSR-E TB 37GHz processing =====")
 
@@ -209,12 +209,12 @@ def main():
         print(f"Treatment completed for 19GHz - date : {date}\n")'''
 
 
-    
+    '''
     print("\n===== FLUXNET =====")
     # Parameters
     fluxnet_path = "data/raw/fluxnet/FluxNET_AMSRE.csv"
     coords_path = "data/processed/fluxnet/fluxnet_station_coordinates.csv"
-    tb_folder = "data/processed/amsre/dates"
+    tb_folder = "data/processed/amsre"
     matched_output_folder = "data/processed/amsre/matched"
 
     # Load FLUXNET once
@@ -315,7 +315,7 @@ def main():
     if new_graph or not os.path.exists(example_tb_path):
         plot_all_stations_temp_evolution("data/raw/fluxnet/FluxNET_AMSRE.csv")
     else:
-        print("⏭️ All temp graphic already generated, skip.")
+        print("⏭️ All temp graphic already generated, skip.")'''
     
 
 if __name__ == "__main__":
