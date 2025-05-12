@@ -24,7 +24,8 @@ def main():
     Sampling = False
     new_graph = False 
     
-    '''# Step 1: Authentication with NASA
+    '''
+    # Step 1: Authentication with NASA
     auth = authenticate()
     
     # Step 2: Search for MODIS files for 2005 and a specific geographical area
@@ -65,15 +66,26 @@ def main():
     check_and_create_file("data/analysis/modis/lst_monthly_summary_2005.json", analyze_monthly_data, input_dir="data/processed/modis")
     check_and_create_file("data/analysis/modis/lst_spatial_summary_2005.json",analyze_spatial_data,input_dir="data/processed/modis")
     
-    print("📈 Analysis completed.")'''
+    print("📈 Analysis completed.")
+    '''
 
-    
-    
-    print("\n===== AMSR-E stage: TB 37GHz processing =====")
-    start_date = datetime(2005, 1, 24)
-    end_date = datetime(2005, 2, 24)
+
+
+
+
+
+
+
+
+    start_date = datetime(2005, 11, 18)
+    end_date = datetime(2005, 12, 31)
     dates = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
     authenticate()
+
+    '''
+    print("\n===== AMSR-E stage: TB 37GHz processing =====")
+    
+    
 
     for date in dates :
         # Filter only .hdf files
@@ -141,17 +153,19 @@ def main():
 
         print(f"Treatment completed for date : {date}\n")
     
-    print("\n===== END of AMSR-E TB 37GHz processing =====")
+    print("\n===== END of AMSR-E TB 37GHz processing =====")'''
 
-    '''print("\n===== AMSR-E stage: TB 19GHz processing =====")
+    
+    print("\n===== AMSR-E stage: TB 19GHz processing =====")
 
-    for date in dates:
+    '''for date in dates:
         # Filter only .hdf files
         files = [f for f in download_amsre_ae_l2a(date=date) if f.endswith('.hdf')]
 
         # Combine the files into two separate CSVs and retrieve the output paths
         output_ascending, output_descending = combine_amsre_files_19ghz(files, date=date)
 
+        
         # Load data and generate maps
         if output_ascending and output_descending:
             df_ascending = pd.read_csv(output_ascending)
@@ -204,12 +218,19 @@ def main():
                     print("\n📊 Visualisation of Combined datas (19GHz)")
                     plot_bt_map(pd.concat([df_ascending, df_descending]), date, pass_type="combined", freq_label="19ghz")
                 else:
-                    print("\n✅ Combined 19GHz map already generated\n")
+                    print("\n✅ Combined 19GHz map already generated\n")'''
 
-        print(f"Treatment completed for 19GHz - date : {date}\n")'''
+        #print(f"Treatment completed for 19GHz - date : {date}\n")
+
+    print("\n===== END of AMSR-E TB 19GHz processing =====")
+    
 
 
-    '''
+
+
+
+
+    
     print("\n===== FLUXNET =====")
     # Parameters
     fluxnet_path = "data/raw/fluxnet/FluxNET_AMSRE.csv"
@@ -226,55 +247,87 @@ def main():
 
     # Generate day-by-day cross-referenced files for each date
     current_date = start_date
+    
+    
     while current_date <= end_date:
         date_str = current_date.strftime("%Y%m%d")        # For file name
         date_folder = current_date.strftime("%Y-%m-%d")   # For folder name
-
-        # Combined file output path
-        output_csv = os.path.join(matched_output_folder, f"matched_tb_fluxnet_{date_str}.csv")
         
-        if os.path.exists(output_csv):
-            print(f"📂 File already exists for {date_str}, move on to the next one.")
+        matched_output_folder_37 = matched_output_folder + "/37GHz"
+        matched_output_folder_19 = matched_output_folder + "/19GHz"
+
+        # Combined file output path for 37GHz
+        output_csv_37 = os.path.join(matched_output_folder_37, f"matched_tb_fluxnet_{date_str}.csv")
+        output_csv_19 = os.path.join(matched_output_folder_19, f"matched_tb_fluxnet_{date_str}.csv")
+        
+        if os.path.exists(output_csv_37) and os.path.exists(output_csv_19):
+            print(f"📂 File already exists for {date_str} at the frequency 37GHz, move on to the next one.")
             current_date += timedelta(days=1)
             continue
 
-
-        print(f"\n===== Generation of matches for {date_str} =====")
+        '''print(f"\n===== Generation of matches for {date_str}, 37GHz =====")
         generate_daily_matches(
             start_date=current_date,
             end_date=current_date,  # A single date for this iteration
             fluxnet_path=fluxnet_path,
             coords_path=coords_path,
             tb_folder=os.path.join(tb_folder, date_folder),  # Existing file for the date
-            output_folder=matched_output_folder
+            output_folder=matched_output_folder_37
         )
 
+        print(f"\n===== Generation of matches for {date_str}, 19GHz =====")
+        generate_daily_matches(
+            start_date=current_date,
+            end_date=current_date,  # A single date for this iteration
+            fluxnet_path=fluxnet_path,
+            coords_path=coords_path,
+            tb_folder=os.path.join(tb_folder, date_folder),  # Existing file for the date
+            output_folder=matched_output_folder_19
+        )'''
+
         # If the file has been created correctly, plot and save the regression
-        if os.path.exists(output_csv):
-            reg_plot_path = f"outputs/{date_folder}/regression_tb_vs_temp_{date_folder}.png"
-            if new_graph or not os.path.exists(reg_plot_path):
-                print(f"\n===== AMSR-E / FLUXNET regression record ({date_str}) =====")
-                plot_brightness_vs_temperature_and_regression(output_csv, date_folder)
+        if os.path.exists(output_csv_37):
+            reg_plot_path_37 = f"outputs/{date_folder}/regression_tb_vs_temp_{date_folder}_37GHz.png"
+            if new_graph or not os.path.exists(reg_plot_path_37):
+                print(f"\n===== AMSR-E / FLUXNET regression record ({date_str}) for 37GHz =====")
+                plot_brightness_vs_temperature_and_regression(output_csv_37, date_folder, "37GHz")
             else : 
                 print("\n✅ Regression for this day already generated")
 
+        if os.path.exists(output_csv_19):
+            reg_plot_path_19 = f"outputs/{date_folder}/regression_tb_vs_temp_{date_folder}_19GHz.png"
+            if new_graph or not os.path.exists(reg_plot_path_19):
+                print(f"\n===== AMSR-E / FLUXNET regression record ({date_str}) for 19GHz =====")
+                plot_brightness_vs_temperature_and_regression(output_csv_19, date_folder, "19Ghz")
+            else : 
+                print("\n✅ Regression for this day already generated")
 
         # Go to next date
         current_date += timedelta(days=1)
-
-
+    
+    
     # Day-by-day linear regression after processing all dates
-    print("\n===== Daily regression TB vs Temperature (multi-day) =====")
-    output_regression_csv = "data/analysis/amsre/daily_regressions.csv"
-    fit_daily_regressions(matched_output_folder, output_regression_csv)
-    plot_regression_metrics_evolution(output_regression_csv)
+    print("\n===== Daily regression TB vs Temperature (multi-day) for the 37GHz frequency =====")
+    output_regression_csv_37 = "data/analysis/amsre/daily_regressions_37GHz.csv"
+    fit_daily_regressions(matched_output_folder_37, output_regression_csv_37)
+    plot_regression_metrics_evolution(output_regression_csv_37,"37GHz")
 
-    plot_global_tb_vs_temp("data/processed/amsre/matched")
+    plot_global_tb_vs_temp("data/processed/amsre/matched/37GHz", "37GHz")
+
+    print("\n===== Daily regression TB vs Temperature (multi-day) for the 19GHz frequency =====")
+    output_regression_csv_19 = "data/analysis/amsre/daily_regressions_19GHz.csv"
+    fit_daily_regressions(matched_output_folder_19, output_regression_csv_19)
+    plot_regression_metrics_evolution(output_regression_csv_19,"19GHz")
+
+    plot_global_tb_vs_temp("data/processed/amsre/matched/19GHz", "19GHz")
+
+
 
 
     print("\n===== Régressions TB vs Température for each station =====")
-    all_matched_df = pd.concat([pd.read_csv(os.path.join(matched_output_folder, f)) for f in os.listdir(matched_output_folder) if f.endswith(".csv")],ignore_index=True)
-    plot_station_regressions(all_matched_df)
+    all_matched_df_37 = pd.concat([pd.read_csv(os.path.join(matched_output_folder_37, f)) for f in os.listdir(matched_output_folder_37) if f.endswith(".csv")],ignore_index=True)
+    all_matched_df_19 = pd.concat([pd.read_csv(os.path.join(matched_output_folder_19, f)) for f in os.listdir(matched_output_folder_19) if f.endswith(".csv")],ignore_index=True)
+    plot_station_regressions(all_matched_df_37,all_matched_df_19)
 
 
     print("\n===== Regression for each station & overall station regression =====")
@@ -283,7 +336,7 @@ def main():
     example_station = "FLX_FR-LBr_FLUXNET2015_FULLSET_1996-2008_1-4"  
     example_path = os.path.join(regression_dir, f"regression_2005_{example_station}.png")
     if new_graph or not os.path.exists(example_path):
-        plot_stationwise_and_global_regressions_2005("data/raw/fluxnet/FluxNET_AMSRE.csv")
+        plot_stationwise_and_global_regressions_2005("data/raw/fluxnet/FluxNET_AMSRE.csv","37GHz")
     else:
         print("⏭️ Graphics of stations already present, skip.")
 
@@ -315,7 +368,7 @@ def main():
     if new_graph or not os.path.exists(example_tb_path):
         plot_all_stations_temp_evolution("data/raw/fluxnet/FluxNET_AMSRE.csv")
     else:
-        print("⏭️ All temp graphic already generated, skip.")'''
+        print("⏭️ All temp graphic already generated, skip.")
     
 
 if __name__ == "__main__":
