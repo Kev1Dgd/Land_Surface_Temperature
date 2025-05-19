@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import timedelta
 from geopy.distance import geodesic
 
-def match_tb_with_fluxnet(df_fluxnet, df_tb, df_coords, output_path):
+def match_tb_with_fluxnet(df_fluxnet, df_tb, df_coords, output_path, freq_label):
     results = []
 
     for station_name in df_fluxnet.columns[1:]:  # Skip the date column
@@ -21,7 +21,7 @@ def match_tb_with_fluxnet(df_fluxnet, df_tb, df_coords, output_path):
             (df_tb["longitude"].between(lon - 1, lon + 1))
         ]
 
-        tb_mean = tb_near["brightness_temp_37v"].mean()
+        tb_mean = tb_near[f"brightness_temp_{freq_label[2:]}v"].mean()
 
         # Cleaning and temperature validation
         temp_raw = df_fluxnet[station_name].values[0]
@@ -42,16 +42,22 @@ def match_tb_with_fluxnet(df_fluxnet, df_tb, df_coords, output_path):
             "station": station_name,
             "latitude": lat,
             "longitude": lon,
-            "brightness_temp_37v": tb_mean,
+            f"brightness_temp_{freq_label[2:]}v": tb_mean,
             "temperature": temp
         })
+
+    # ✅ NE PAS ÉCRIRE UN CSV VIDE
+    if not results:
+        print(f"⚠️ No valid matches for this day — nothing saved to {output_path}")
+        return
 
     df_result = pd.DataFrame(results)
     df_result.to_csv(output_path, index=False)
     print(f"✅ Results exported to : {output_path}")
 
 
-def generate_daily_matches(start_date, end_date, fluxnet_path, coords_path, tb_folder, output_folder):
+
+def generate_daily_matches(start_date, end_date, freq_label, fluxnet_path, coords_path, tb_folder, output_folder):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
@@ -79,7 +85,7 @@ def generate_daily_matches(start_date, end_date, fluxnet_path, coords_path, tb_f
 
         # Load the corresponding TB file
         
-        tb_file = os.path.join(tb_folder, f"amsre_combined_37GHz_{date_str}_descending.csv")
+        tb_file = os.path.join(tb_folder, f"amsre_combined_{freq_label}_{date_str}_descending.csv")
         
         if not os.path.exists(tb_file):
             print(f"⚠️ Missing TB file for {date_str} : {tb_file}")
@@ -89,7 +95,7 @@ def generate_daily_matches(start_date, end_date, fluxnet_path, coords_path, tb_f
         # Load and match data
         df_tb = pd.read_csv(tb_file)
         output_csv = os.path.join(output_folder, f"matched_tb_fluxnet_{file_suffix}.csv")
-        match_tb_with_fluxnet(df_fluxnet_day, df_tb, df_coords, output_csv)
+        match_tb_with_fluxnet(df_fluxnet_day, df_tb, df_coords, output_csv, freq_label)
 
 
         current_date += timedelta(days=1)

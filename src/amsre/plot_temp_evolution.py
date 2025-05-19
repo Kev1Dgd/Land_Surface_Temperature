@@ -95,16 +95,16 @@ def plot_seasonal_temp_with_tb_evolution(matched_folder1="data/processed/amsre/m
 
         # Rename the columns to match our logic
         df_match = df_match.rename(columns={
-            "brightness_temp_37v": "tb37",
+            "brightness_temp_19v": "tb19",
             "temperature": "temp"
         })
 
-        if "tb37" not in df_match or "temp" not in df_match:
+        if "tb19" not in df_match or "temp" not in df_match:
             print(f"❌ Necessary columns missing from the file : {file}")
             continue
 
         df_match["date"] = date_obj
-        df_match = df_match[["date", "tb37", "temp"]].dropna()
+        df_match = df_match[["date", "tb19", "temp"]].dropna()
 
         # Cleaning: filtering out aberrant temperatures
         df_match = df_match[(df_match["temp"] > 180) & (df_match["temp"] < 330)]
@@ -150,14 +150,14 @@ def plot_seasonal_temp_with_tb_evolution(matched_folder1="data/processed/amsre/m
     df_all2 = pd.concat(df_all_matches2)
 
     # Daily average
-    df_grouped1 = df_all1.groupby("date").agg({"temp": "mean", "tb37": "mean"}).reset_index()
+    df_grouped1 = df_all1.groupby("date").agg({"temp": "mean", "tb19": "mean"}).reset_index()
     df_grouped2 = df_all2.groupby("date").agg({"temp": "mean", "tb37": "mean"}).reset_index()
 
     # Plot
     plt.figure(figsize=(12, 6))
     plt.plot(df_grouped1["date"], df_grouped1["temp"], label="Température in-situ (°K)", color="tomato")
-    plt.plot(df_grouped1["date"], df_grouped1["tb37"], label="Température de brillance 37GHz AMSR-E (°K)", color="royalblue")
-    plt.plot(df_grouped1["date"], df_grouped1["tb37"], label="Température de brillance 19GHz AMSR-E (°K)", color="cyan")
+    plt.plot(df_grouped1["date"], df_grouped1["tb19"], label="Température de brillance 37GHz AMSR-E (°K)", color="royalblue")
+    plt.plot(df_grouped2["date"], df_grouped1["tb37"], label="Température de brillance 37GHz AMSR-E (°K)", color="cyan")
 
     plt.xlabel("Date")
     plt.ylabel("Température (K)")

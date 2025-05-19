@@ -27,6 +27,8 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
 
     fig = plt.figure(figsize=(12, 8))
     ax = plt.axes(projection=ccrs.PlateCarree())
+    ax.add_feature(cfeature.COASTLINE)
+    ax.add_feature(cfeature.BORDERS, linestyle=':')
     vmin = 130
     vmax = 300
 
@@ -55,7 +57,39 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
         output_file = os.path.join(date_output_dir, f"tb_{freq_label}_map_{date}_{pass_type}.png")
 
     plt.tight_layout()
-    plt.savefig(output_file, dpi=500)
+    plt.savefig(output_file, dpi=600)
     plt.close()
 
     print(f"✅ Map saved in {output_file}")
+
+def plot_temp_estimated_map(df, date, pass_type, freq_label, a, b, cmap="viridis", output_dir="outputs/amsre/dates"):
+    print(f"🗺️ Génération de la carte de température estimée pour pass_type = {pass_type}...")
+
+    if pass_type == "combined":
+        df_filtered = df
+    else:
+        df_filtered = df[df["pass_type"] == pass_type]
+
+    df_filtered["lat_bin"] = df_filtered["latitude"].round(4)
+    df_filtered["lon_bin"] = df_filtered["longitude"].round(4)
+
+    # Appliquer la régression
+    df_filtered["estimated_temp"] = a * df_filtered["brightness_temp_37v"] + b -273.15
+
+    fig = plt.figure(figsize=(12, 8))
+    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax.add_feature(cfeature.COASTLINE)
+    ax.add_feature(cfeature.BORDERS, linestyle=':')
+    
+    sc = ax.scatter(df_filtered["lon_bin"], df_filtered["lat_bin"], c=df_filtered["estimated_temp"],
+                    cmap=cmap, s=10, transform=ccrs.PlateCarree())
+
+    plt.colorbar(sc, ax=ax, orientation='vertical', label='Température estimée (°C)')
+    title = f"Température estimée ({freq_label}) - {pass_type} - {date}"
+    plt.title(title)
+
+    os.makedirs(f"{output_dir}/{date}", exist_ok=True)
+    output_path = f"{output_dir}/{date}/temp_by_reg_{freq_label}_map_{date}_{pass_type}.png"
+    plt.savefig(output_path, dpi=500)
+    plt.close()
+    print(f"✅ Carte de température estimée sauvegardée : {output_path}")

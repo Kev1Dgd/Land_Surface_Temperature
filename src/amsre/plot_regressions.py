@@ -12,12 +12,17 @@ def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label
     df = pd.read_csv(csv_path)
 
     # Data cleansing: removal of missing and inconsistent values
-    df = df.dropna(subset=["brightness_temp_37v", "temperature"])
+    df = df.dropna(subset=[f"brightness_temp_{freq_label[0:2]}v", "temperature"])
     df = df[(df["temperature"] > 180) & (df["temperature"] < 330)]
-    df = df[(df["brightness_temp_37v"] > 180) & (df["brightness_temp_37v"] < 330)]
+    df = df[(df[f"brightness_temp_{freq_label[0:2]}v"] > 180) & (df[f"brightness_temp_{freq_label[0:2]}v"] < 330)]
+
+    # ✅ Vérification si le DataFrame est vide ou trop petit
+    if df.shape[0] < 2:
+        print(f"⚠️ Pas assez de données valides pour {date_str}, skipping regression.")
+        return
 
     # Variables for regression
-    X = df["brightness_temp_37v"].values.reshape(-1, 1)
+    X = df[f"brightness_temp_{freq_label[0:2]}v"].values.reshape(-1, 1)
     y = df["temperature"].values.reshape(-1, 1)
 
     # Linear regression model
@@ -34,10 +39,10 @@ def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label
     a = model.coef_[0][0]
     b = model.intercept_[0]
     r2 = model.score(X, y)
-    plt.title(f"Temperature FLUXNET vs TB AMSR-E (37 GHz)\nRegression : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
+    plt.title(f"Température FLUXNET vs TB AMSR-E ({freq_label})\nRégression : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
 
-    plt.xlabel("Brightness temperature AMSR-E (K)")
-    plt.ylabel("FLUXNET temperature (K)")
+    plt.xlabel("Température de brillance AMSR-E (K)")
+    plt.ylabel("Température FLUXNET (K)")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
@@ -51,10 +56,10 @@ def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label
     plt.savefig(output_file, dpi=300)
     plt.close()
 
-    print(f"✅ Regression saved in {output_file}")
+    print(f"✅ Régression sauvegardée dans {output_file}")
 
 
-def fit_daily_regressions(folder_path, output_csv_path):
+def fit_daily_regressions(folder_path, output_csv_path, freq_label):
     results = []
 
     for root, _, files in os.walk(folder_path):
@@ -65,16 +70,16 @@ def fit_daily_regressions(folder_path, output_csv_path):
                 df = pd.read_csv(file_path)
 
                 # Cleaning
-                df = df.dropna(subset=["brightness_temp_37v", "temperature"])
+                df = df.dropna(subset=[f"brightness_temp_{freq_label[0:2]}v", "temperature"])
                 df = df[(df["temperature"] > 180) & (df["temperature"] < 330)]
-                df = df[(df["brightness_temp_37v"] > 180) & (df["brightness_temp_37v"] < 330)]
+                df = df[(df[f"brightness_temp_{freq_label[0:2]}v"] > 180) & (df[f"brightness_temp_{freq_label[0:2]}v"] < 330)]
 
-                if len(df) < 3:  # If less than 3 points, ignore this day
+                if len(df) < 2:  # If less than 3 points, ignore this day
                     print(f"⚠️ Pas assez de données pour {date_str}")
                     continue
 
                 # Linear regression
-                X = df["brightness_temp_37v"].values.reshape(-1, 1)
+                X = df[f"brightness_temp_{freq_label[0:2]}v"].values.reshape(-1, 1)
                 y = df["temperature"].values.reshape(-1, 1)
 
                 model = LinearRegression()
@@ -102,6 +107,7 @@ def fit_daily_regressions(folder_path, output_csv_path):
     df_results.to_csv(output_csv_path, index=False)
     print(f"✅ Daily regressions saved in : {output_csv_path}")
 
+
 def get_season_from_month(month):
     if month in [12, 1, 2]:
         return "Winter"
@@ -128,9 +134,9 @@ def plot_global_tb_vs_temp(matched_folder, freq_label):
                 continue
 
             df = pd.read_csv(os.path.join(matched_folder, filename))
-            df = df.dropna(subset=["brightness_temp_37v", "temperature"])
+            df = df.dropna(subset=[f"brightness_temp_{freq_label[0:2]}v", "temperature"])
             df = df[(df["temperature"] > 180) & (df["temperature"] < 330)]
-            df = df[(df["brightness_temp_37v"] > 180) & (df["brightness_temp_37v"] < 330)]
+            df = df[(df[f"brightness_temp_{freq_label[0:2]}v"] > 180) & (df[f"brightness_temp_{freq_label[0:2]}v"] < 330)]
             df["saison"] = saison  # Ajout de la saison comme colonne
 
             all_data.append(df)
@@ -142,7 +148,7 @@ def plot_global_tb_vs_temp(matched_folder, freq_label):
     df_all = pd.concat(all_data, ignore_index=True)
 
     # Régression globale
-    X = df_all["brightness_temp_37v"].values.reshape(-1, 1)
+    X = df_all[f"brightness_temp_{freq_label[0:2]}v"].values.reshape(-1, 1)
     y = df_all["temperature"].values.reshape(-1, 1)
     model = LinearRegression()
     model.fit(X, y)
@@ -160,7 +166,7 @@ def plot_global_tb_vs_temp(matched_folder, freq_label):
     plt.figure(figsize=(10, 6))
     for saison, group in df_all.groupby("saison"):
         plt.scatter(
-            group["brightness_temp_37v"],
+            group[f"brightness_temp_{freq_label[0:2]}v"],
             group["temperature"],
             s=10,
             alpha=0.4,
@@ -290,7 +296,7 @@ def plot_station_regressions(df_matched1, df_matched2, output_dir="outputs/amsre
 
         # Vérification données valides
         x1, y1 = group1["brightness_temp_37v"], group1["temperature"]
-        x2, y2 = group2["brightness_temp_37v"], group2["temperature"]
+        x2, y2 = group2["brightness_temp_19v"], group2["temperature"]
 
         valid1 = np.isfinite(x1) & np.isfinite(y1)
         valid2 = np.isfinite(x2) & np.isfinite(y2)
@@ -323,7 +329,6 @@ def plot_station_regressions(df_matched1, df_matched2, output_dir="outputs/amsre
         output_path = os.path.join(output_dir, f"regression_tb_vs_temp_{station}.png")
         plt.savefig(output_path)
         plt.close()
-
 
 
 def plot_regression_metrics_evolution(regression_csv_path,freq_label):
