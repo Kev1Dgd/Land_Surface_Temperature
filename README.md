@@ -1,212 +1,172 @@
-# 🌍 Land Surface Temperature Estimation from Satellite Data (AMSR-E & MODIS)
+# 🌍 Land Surface Temperature Estimation from Satellite Data (AMSR-E, MODIS & Land Cover)
 
-## Overview
+This project explores the estimation of **Land Surface Temperature (LST)** using satellite observations, as part of preparatory R&D work for the upcoming **Copernicus Imaging Microwave Radiometer (CIMR)** mission. Since CIMR is not yet launched, the study uses heritage sensors with similar characteristics — **AMSR-E**, **MODIS**, and optionally **WindSat** — in combination with **land cover data** and **FLUXNET** in-situ observations.
 
-This repository documents the work conducted during my internship on estimating **Land Surface Temperature (LST)** using satellite data. The project is part of the R&D efforts related to the future **Copernicus Imaging Microwave Radiometer (CIMR)** mission. Since CIMR is not yet in orbit, the study uses data from heritage sensors with similar characteristics, namely **AMSR-E**, **WindSat**, and **MODIS**. The ultimate goal is to develop and validate an algorithm capable of retrieving LST from CIMR-like data.
+> 📌 **Current focus**: Europe only, to limit data volume and ensure regional consistency.
 
-## 🚀 Objective
+---
 
-To retrieve **Land Surface Temperature (LST)** using:
+## 🎯 Objectives
 
-- **Microwave brightness temperature** data from the **AMSR-E** satellite (specifically the 37 GHz channel)
-- **Thermal infrared LST** from **MODIS** as a reference (which operates in the Near-Infrared range)
-- **In-situ station data** from **FLUXNET** to train and validate the regression model
+- Estimate LST using:
+  - **Microwave Brightness Temperatures (TBs)** from AMSR-E (19 GHz & 37 GHz)
+  - **Thermal LST** from MODIS (as reference/training)
+  - **Land cover classification** (to account for surface type)
+  - **In-situ data** from FLUXNET (for model validation)
+- Develop and evaluate **regression and machine learning models** to retrieve LST
+- Contribute to **CIMR L2 algorithm design**
 
-This project contributes to the development of L2 algorithms for the CIMR mission by exploring regression-based retrieval techniques and data integration methods.
+---
 
 ## 🔍 Methodology
 
 1. **Data Acquisition**
-   - Downloading AMSR-E brightness temperature (TB) data for the year **2005**
-   - Downloading MODIS LST products for the same period
-   - Collecting ground truth data from **FLUXNET** in-situ stations
+   - AMSR-E TBs for 2005
+   - MODIS Terra/Aqua LST products
+   - FLUXNET LST & meteorological data
+   - Land cover classification (0.25° resolution)
 
 2. **Preprocessing**
-   - Geolocation matching of AMSR-E and MODIS data
-   - Filtering of cloud-contaminated MODIS pixels
-   - Temporal alignment of observations
+   - Geolocation & time matching of MODIS & AMSR-E data
+   - Filtering of cloudy MODIS pixels
+   - Extraction of TBs for ascending/descending orbits
+   - Matching with FLUXNET stations
+   - Land cover extraction per station/grid cell
 
-3. **Algorithm Development**
-   - Implementing a regression model to estimate LST from AMSR-E TBs
-   - Using MODIS as ground truth for training
-   - Validating with FLUXNET where possible
+3. **Modeling**
+   - Linear regression between TBs and surface temperatures
+   - Machine learning using TBs, MODIS LST, and land cover as inputs
+   - Use of MODIS as ground truth for training, FLUXNET for validation
 
 4. **Evaluation**
-   - Compare regression-based LST with MODIS reference
-   - Analyze seasonal and spatial biases
-   - Test cross-sensor compatibility with WindSat (optional)
+   - Scatter plots, seasonal trends, R², RMSE
+   - Station-wise and global analysis
+   - Visual diagnostics on model performance
 
-## 🛠 Technologies
+---
 
-- **Language**: Python
-- **Libraries**: `numpy`, `pandas`, `xarray`, `matplotlib`, `scikit-learn`, `netCDF4`, `pyhdf`, `rasterio`
-- **Satellite Data**:
-  - AMSR-E (37 GHz TB)
-  - MODIS (Terra/Aqua LST)
-  - WindSat (optional)
-- **In-situ Data**:
-  - FLUXNET LST and meteorological observations
+## 🧠 Machine Learning Focus
+
+A regression model is currently under development with the following characteristics:
+
+- **Inputs**:
+  - Brightness temperatures from AMSR-E at 19 GHz and 37 GHz
+  - MODIS LST
+  - Land cover class
+- **Output**:
+  - Land Surface Temperature (LST)
+- **Training**: MODIS LST
+- **Validation**: FLUXNET temperature (where available)
+
+---
+
+## ⚙️ Tools & Technologies
+
+- **Python Libraries**: `numpy`, `pandas`, `xarray`, `matplotlib`, `scikit-learn`, `netCDF4`, `pyhdf`, `rasterio`
+- **Data formats**: `.hdf`, `.nc`, `.csv`, `.png`
+- **Data Sources**:
+  - AMSR-E, MODIS (NASA)
+  - Land Cover (0.25° resolution)
+  - FLUXNET (in-situ stations)
+
+---
 
 ## 📁 Repository Structure
-
 ```
 .
 ├── data/
-│   ├── analysis/                         # Contains model values that may be of interest
-│   │   ├── modis/                        
-│   │   ├── fluxnet/    
-│   │   └── amsre/
-│   ├── processed/         
-│   │   ├── modis/                        # .hdf MODIS files converted to .csv
-│   │   ├── fluxnet/    
-│   │   │   └── stations.csv              # List of fluxnet stations with their coordinates
-│   │   └── amsre/
-│   │   │   ├── dates (YYYY - MM - DD)/   # Contains brightness temperatures when the orbit is ascending and descending
-│   │   │   └── matched /                 # Match brightness temperature and temperature for a specific station
-│   ├── raw/               
-│   │   ├── modis/                        # .hdf MODIS files
-│   │   ├── fluxnet/                      # Table of temperatures recorded at various stations
-│   │   └── amsre/                        # AMSR_E files (.hdf)
-├── docs/                                 # Useful references  for understanding the project
-├── notebooks/
-│   └── test.ipynb                        # Perform tests on pieces of code
-├── outputs/
-│   ├── amsre/     
-│   │   ├── dates/                        # Contains maps with gloss temperatures and plotting of temperatures as a function of TB with linear regression (.png)
-│   │   ├── stations/                     # Contains linear regressions for each station
-│   ├── fluxnet/  
-│   │   ├── seasonal_evolution/           # Time trend in temperature for each station
-│   │   ├── seaonal_temp_tb/              # Comparison of temperature and TB over time
-│   │   └── stationswise_regression/      # Linear regression of temperature by station and overall
-│   └── modis/
-├──src/
-│   ├── modis/
-│   │   ├── download.py                   # Download data from modis
-│   │   ├── process.py                    # Data processing
-│   │   ├── analyze.py                    # Gather statistics for spatial and monthly analysis
-│   │   ├── analysis_utils.py                    
-│   │   └── utils.py      
-│   ├── amsre/                                              
-│   │   ├── download.py                   # Downloading data with earthaccess
-│   │   ├── matches.py                    # Return the file of the match (.csv)   
-│   │   ├── plot_regressions.py                                 
-│   │   ├── plot_temp_evolution.py        # Plot the temporal comparison of temperature and TB (.png)
-│   │   ├── plot.py                       # Plot the TB map (.png)
-│   │   └── process.py                    # data processing and backup (.csv)
-│   ├── merge/
-│   │   └── create_dataset.py             # Merges AMSRE, MODIS and Land Cover data into a single .csv file
-│   ├── land_cover/
-│   │   └── process.py                    # Data processing
-├── main.py                               # Supporting documentation and references  
+│ ├── raw/ # Original satellite, land cover, FLUXNET data
+│ ├── processed/                                               # Cleaned & matched datasets
+│ ├── analysis/                                                # Regression metrics, analysis tables
+├── outputs/                                                   # All plots (.png)
+│ ├── amsre/
+│ ├── fluxnet/
+│ └── modis/
+├── notebooks/                                                 # Development notebooks
+├── src/
+│ ├── amsre/                                                   # AMSR-E processing, matching, plotting
+│ ├── modis/                                                   # MODIS downloading, processing, analysis
+│ ├── land_cover/                                              # Land cover extraction and cleaning
+│ └── merge/                                                   # Data fusion scripts
+├── docs/                                                      # Technical notes and references
+├── main.py                                                    # Main script for executing pipeline
 ├── requirements.txt
-└── README.md                             # Project description
+└── README.md
 ```
 
-## 🧑‍💻 Code Description
-### Main Script: ```main.py```
-The main script, main.py, integrates various steps of the project, including data processing, regression algorithm application, and graph generation. Here are the key functionalities:
+---
 
-1. Data Processing:
+## 🧪 Code Overview
 
-- Reading preprocessed AMSR-E, MODIS, and FLUXNET data.
+The `main.py` script orchestrates the full pipeline:
 
-- Performing matching algorithms to associate surface temperature data with brightness temperature data.
+- Loads matched AMSR-E / MODIS / FLUXNET data
+- Applies regressions
+- Generates seasonal plots and scatter graphs
+- Saves outputs to `outputs/` folder
 
-2. Graph Generation:
+You can also run specific modules:
+- `src/amsre/plot_temp_evolution.py` → seasonal plots
+- `src/amsre/plot_regressions.py` → scatter plots & regression fits
 
-- Visualizing seasonal temperature evolution using in-situ data and AMSR-E data.
+---
 
-- Comparing AMSR-E brightness temperature with MODIS and FLUXNET LST.
+## 📊 Outputs
 
-- Generating scatter plots and seasonal evolution graphs for different stations.
+Outputs are saved in `.png` format under `outputs/`. Main categories:
 
-3. Saving Results:
+- `outputs/amsre/dates/`: TB & LST maps by date
+- `outputs/amsre/stations/`: Station-wise regressions
+- `outputs/fluxnet/seasonal_evolution/`: LST trends per station
+- `outputs/fluxnet/seasonal_temp_tb/`: Seasonal plots TB vs LST
+- `outputs/modis/dates/`: LST maps from MODIS
 
-- Generated graphs are saved in dedicated subfolders under ```outputs/fluxnet/seasonal_temp_tb```.
+---
 
-### Modules and Functions
-```src/amsre/plot_temp_evolution.py```
-The ```plot_temp_evolution.py module``` is responsible for generating the graphs. Here are the main functions:
+## ⚠️ Execution Notes
 
-1. ```plot_seasonal_temp_evolution()```
-This function generates seasonal temperature evolution graphs, comparing in-situ temperatures with AMSR-E temperatures.
+- **Missing Columns**: CSVs missing expected fields (e.g. `brightness_temp_37v`, `temperature`) are skipped
+- **Invalid Dates**: Files with malformed dates are ignored
+- **Outliers**: Values <180K or >330K filtered out
+- **Matching Errors**: If no match is found between TB and LST, the date is skipped
 
-- It takes as input a CSV file containing surface temperatures and generates one graph per station, with temperature plotted against the day of the year (DOY).
+---
 
-- If AMSR-E data is available, it overlays the AMSR-E brightness temperatures on top of the in-situ temperatures.
+## 🧑‍💻 Example Usage
 
-2. ```plot_seasonal_temp_with_tb_evolution()```
-This function generates a comparative graph between in-situ LST and AMSR-E brightness temperature (37 GHz) over the entire period.
+Run the main analysis:
 
-- It uses matched data files in the data/processed/amsre/matched folder to compute daily averaged temperatures for each station.
-
-- It plots a seasonal evolution graph of in-situ LST temperatures against AMSR-E brightness temperatures, allowing you to visualize regression performance and fitting with MODIS data.
-
-#### Example Usage
-- Running the main script
-To run the analysis and generate the graphs, simply execute main.py in your Python environment after placing the necessary data files in the correct folder.
-
-```bash 
+```bash
 python main.py
 ```
 
-- Generate Seasonal Graphs
-To generate seasonal graphs for FLUXNET stations and AMSR-E data, use the function **```plot_seasonal_temp_evolution()```** by providing the path to a CSV file as input.
+Or generate seasonal graphs manually:
+```bash
+from src.amsre.plot_temp_evolution import plot_seasonal_temp_evolution
+plot_seasonal_temp_evolution("data/processed/amsre/matched/station_x.csv")
+```
 
-## ⚙️ Dependencies
-The required dependencies are listed in the requirements.txt file. To install the dependencies, run the following command in your terminal:
+---
+
+## 🔧 Installation
+
+Instakk dependencies with : 
 
 ```bash 
 pip install -r requirements.txt
 ```
 
-## 📝 Execution Notes
+---
 
-### Error Handling
-When running the main script or generating graphs, the following issues may arise:
-
-- **Incorrect Date Format in CSV Files**:
-If a data file does not follow the expected date format (YYYYMMDD), the program will ignore it and display an error message indicating the problematic file.
-
-- **Missing Required Columns**:
-If a matched data file does not contain the necessary columns (brightness_temp_37v, temperature), it will be ignored, and an error message will be displayed.
-
-- **Outlier Data**:
-Filters are applied to remove temperature outliers (e.g., temperatures below 180 K or above 330 K).
-
-### Generated Graphs
-Seasonal Graphs for Each Station:
-Each station in the FLUXNET data will have a graph showing the evolution of temperature over the course of the year. If AMSR-E data is available, it will also be plotted for comparison.
-
-- **Comparative Seasonal Graph of LST and AMSR-E TB**:
-This graph compares the seasonal evolution of surface temperature estimated through regression (in-situ LST) with AMSR-E brightness temperature (37 GHz).
-
-## 📊 Results
-Results are saved in the ```outputs/``` directory as PNG graphs. The following subfolders are used for saving the results:
-
-- ```outputs/fluxnet/seasonal_temp_tb/``` : Graphs comparing LST temperatures with AMSR-E brightness temperatures for all stations.
-
-- ```outputs/fluxnet/seasonal_evolution/``` : Seasonal graphs for each individual station.
-
-## 🔧 Debugging & Contributions
-
-- If you encounter issues while running the scripts, here are some troubleshooting steps:
-
-- Ensure that the data files are correctly formatted and placed in the appropriate folders (```data/processed/amsre/matched``` and ```data/processed/modis```).
-
-- Make sure all dependencies are installed using pip install -r requirements.txt.
-
-- For any questions or suggestions for modification, feel free to open an issue on GitHub or contribute via pull request.
-
-## 📚 Additional References
+## 📚 References
 
 - [CIMRL2PAD-UVEG-TEC-RAS-D2 Technical Note](./docs/CIMRL2PAD-UVEG-TEC-RAS-D2.pdf) — describes R&D activities for CIMR L2 product algorithm development
 - Algorithm Theoretical Basis Documents (ATBDs) for AMSR-E and MODIS LST retrieval
 - Regression methodologies for passive microwave LST estimation
 
+---
 
 ## 👤 Author
-
 **Kevin DUGARD**  
-Intern at ENSEA, Cergy (France), Internship at UPC, Barcelona (Spain)
+Student at ENSEA, Cergy (France), Internship at UPC, Barcelona (Spain)
 Supervised by Mercè Vall-Llossera Ferran, UPC associate professor
