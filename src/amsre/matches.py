@@ -21,7 +21,7 @@ def match_tb_with_fluxnet(df_fluxnet, df_tb, df_coords, output_path, freq_label)
             (df_tb["longitude"].between(lon - 1, lon + 1))
         ]
 
-        tb_mean = tb_near[f"brightness_temp_{freq_label[2:]}v"].mean()
+        tb_mean = tb_near[f"brightness_temp_{freq_label[:2]}v"].mean()
 
         # Cleaning and temperature validation
         temp_raw = df_fluxnet[station_name].values[0]
@@ -42,7 +42,7 @@ def match_tb_with_fluxnet(df_fluxnet, df_tb, df_coords, output_path, freq_label)
             "station": station_name,
             "latitude": lat,
             "longitude": lon,
-            f"brightness_temp_{freq_label[2:]}v": tb_mean,
+            f"brightness_temp_{freq_label[:2]}v": tb_mean,
             "temperature": temp
         })
 

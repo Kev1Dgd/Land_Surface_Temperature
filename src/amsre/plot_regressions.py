@@ -180,7 +180,7 @@ def plot_global_tb_vs_temp(matched_folder, freq_label):
     r2 = model.score(X, y)
     a = model.coef_[0][0]
     b = model.intercept_[0]
-    plt.title(f"Régression globale 2005 for the {freq_label}GHz frequency : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
+    plt.title(f"Régression globale 2005 for the {freq_label} frequency : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
@@ -310,14 +310,14 @@ def plot_station_regressions(df_matched1, df_matched2, output_dir="outputs/amsre
         if valid1.sum() >= 2:
             coef1 = np.polyfit(x1[valid1], y1[valid1], deg=1)
             poly1 = np.poly1d(coef1)
-            plt.scatter(x1, y1, alpha=0.4, label="Obs 1", color="blue")
+            plt.scatter(x1, y1, alpha=0.4, label="37GHz", color="cyan")
             plt.plot(x1, poly1(x1), color="blue", label=f"Régression 1: y = {coef1[0]:.2f}x + {coef1[1]:.2f}")
 
         if valid2.sum() >= 2:
             coef2 = np.polyfit(x2[valid2], y2[valid2], deg=1)
             poly2 = np.poly1d(coef2)
-            plt.scatter(x2, y2, alpha=0.4, label="Obs 2", color="red")
-            plt.plot(x2, poly2(x2), color="green", label=f"Régression 2: y = {coef2[0]:.2f}x + {coef2[1]:.2f}")
+            plt.scatter(x2, y2, alpha=0.4, label="19GHz", color="pink")
+            plt.plot(x2, poly2(x2), color="red", label=f"Régression 2: y = {coef2[0]:.2f}x + {coef2[1]:.2f}")
 
         plt.xlabel("Température de brillance (tb)")
         plt.ylabel("Température mesurée")
@@ -331,17 +331,33 @@ def plot_station_regressions(df_matched1, df_matched2, output_dir="outputs/amsre
         plt.close()
 
 
-def plot_regression_metrics_evolution(regression_csv_path,freq_label):
-    output_path=f"outputs/amsre/regression_metrics_evolution_{freq_label}.png"
+def plot_regression_metrics_evolution(regression_csv_path, freq_label):
+    output_path = f"outputs/amsre/regression_metrics_evolution_{freq_label}.png"
     df = pd.read_csv(regression_csv_path)
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
 
     plt.figure(figsize=(12, 6))
 
-    # On trace les trois courbes sur le même graphe
+    # Tracer les courbes
     plt.plot(df["date"], df["a"], label="Pente (a)", color="blue")
     plt.plot(df["date"], df["r2"], label="R²", color="green")
     plt.plot(df["date"], df["rmse"], label="RMSE", color="red")
+
+    # Fixe l'axe des ordonnées
+    plt.ylim(-20, 20)
+
+    # Annoter les points hors limite
+    for i, row in df.iterrows():
+        for metric, color in zip(['a', 'r2', 'rmse'], ['blue', 'green', 'red']):
+            value = row[metric]
+            if value < -20 or value > 20:
+                plt.annotate(f"{value:.1f}", 
+                             (row["date"], min(20, max(-20, value))), 
+                             textcoords="offset points", 
+                             xytext=(0, 5), 
+                             ha='center', 
+                             fontsize=8, 
+                             color=color)
 
     plt.title(f"Évolution temporelle des métriques de régression {freq_label}")
     plt.xlabel("Date")

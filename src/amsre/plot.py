@@ -74,7 +74,7 @@ def plot_temp_estimated_map(df, date, pass_type, freq_label, a, b, cmap="viridis
     df_filtered["lon_bin"] = df_filtered["longitude"].round(4)
 
     # Appliquer la régression
-    df_filtered["estimated_temp"] = a * df_filtered["brightness_temp_37v"] + b -273.15
+    df_filtered["estimated_temp"] = a * df_filtered[f"brightness_temp_{freq_label[:2]}v"] + b -273.15
 
     fig = plt.figure(figsize=(12, 8))
     ax = plt.axes(projection=ccrs.PlateCarree())

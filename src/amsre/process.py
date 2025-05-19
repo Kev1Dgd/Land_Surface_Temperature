@@ -165,51 +165,41 @@ def extract_bt_37ghz(file_path):
         debug_print(f"Error : {e}")
         return None, None, None, None
 
-def merge_amsre_data(data_dir, output_file):
-    # Écrire l'en-tête une seule fois
-    with open(output_file, 'w') as f_out:
-        f_out.write("date,latitude,longitude,brightness_temp_37v,brightness_temp_19v\n")
 
-    for date_folder in sorted(os.listdir(data_dir)):
-        date_path = os.path.join(data_dir, date_folder)
-        if not os.path.isdir(date_path):
-            continue
+import os
+import pandas as pd
 
-        merged_path = os.path.join(date_path, f"merged_amsre_data_{date_folder}.csv")
-        if os.path.exists(merged_path):
-            print(f"✅ Fichier déjà présent pour {date_folder}, on passe.")
-            continue
-        
-        try:
-            df_37a = pd.read_csv(os.path.join(date_path, f"amsre_combined_37GHz_{date_folder}_ascending.csv"))
-            df_37d = pd.read_csv(os.path.join(date_path, f"amsre_combined_37GHz_{date_folder}_descending.csv"))
-            df_19a = pd.read_csv(os.path.join(date_path, f"amsre_combined_19GHz_{date_folder}_ascending.csv"))
-            df_19d = pd.read_csv(os.path.join(date_path, f"amsre_combined_19GHz_{date_folder}_descending.csv"))
-        except FileNotFoundError:
-            print(f"⚠️ Fichiers manquants pour la date {date_folder}, on passe.")
-            continue
+def concat_amsre_files(input_dir, output_file):
+    # Liste des dossiers (dates) dans base_dir
+    date_folders = sorted([
+        d for d in os.listdir(input_dir)
+        if os.path.isdir(os.path.join(input_dir, d))
+    ])
 
-        df_37 = pd.concat([df_37a, df_37d], ignore_index=True)
-        df_19 = pd.concat([df_19a, df_19d], ignore_index=True)
-
-        df_merge = pd.merge(df_37, df_19, on=["latitude", "longitude", "pass_type"], how="inner")
-        df_merge["date"] = date_folder
-
-        df_final = df_merge[["date", "latitude", "longitude", "brightness_temp_37v", "brightness_temp_19v"]]
-        df_final = df_final[
-            (df_final["brightness_temp_37v"] != 0.0) & 
-            (df_final["brightness_temp_19v"] != 0.0)
-        ]
-
-        if not df_final.empty:
-            df_final.to_csv(merged_path, index=False)
-            # Ajoute au fichier global
-            df_final.to_csv(output_file, mode='a', header=False, index=False)
-            print(f"✅ {date_folder} fusionné ({len(df_final)} lignes conservées).")
+    all_dfs = []
+    for date_folder in date_folders:
+        file_path = os.path.join(input_dir, date_folder, f"merged_amsre_data_{date_folder}.csv")
+        if os.path.exists(file_path):
+            try:
+                df = pd.read_csv(file_path)
+                all_dfs.append(df)
+                print(f"✅ Chargé {file_path} ({len(df)} lignes)")
+            except Exception as e:
+                print(f"⚠️ Erreur lecture {file_path} : {e}")
         else:
-            print(f"⚠️ {date_folder} ignoré (aucune donnée valide).")
+            print(f"⚠️ Fichier manquant : {file_path}")
 
-    print(f"\n✅ Fusion complète terminée. Données enregistrées dans {output_file}")
+    if not all_dfs:
+        print("❌ Aucun fichier chargé.")
+        return
+
+    df_all = pd.concat(all_dfs, ignore_index=True)
+    df_all.to_csv(output_file, index=False)
+    print(f"✅ Fusion terminée, fichier sauvegardé : {output_file} ({len(df_all)} lignes)")
+
+
+
+
 
 def combine_amsre_files_37ghz(files, date, output_dir="data/processed/amsre"):
     lon_min, lat_min, lon_max, lat_max = -12.984, 35.290, 38.018, 64.090
