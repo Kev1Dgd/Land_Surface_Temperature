@@ -160,9 +160,10 @@ pip install -r requirements.txt
 
 ## 📚 References
 
-- [CIMRL2PAD-UVEG-TEC-RAS-D2 Technical Note](./docs/CIMRL2PAD-UVEG-TEC-RAS-D2.pdf) — describes R&D activities for CIMR L2 product algorithm development
-- Algorithm Theoretical Basis Documents (ATBDs) for AMSR-E and MODIS LST retrieval
-- Regression methodologies for passive microwave LST estimation
+- 📄 [CIMRL2PAD-UVEG-TEC-RAS-D2.pdf](./docs/CIMRL2PAD-UVEG-TEC-RAS-D2.pdf) — Technical document for CIMR L2 algorithm development  
+- 📄 [CIMR-MRD-v5.0-20230211_(Issued).pdf](./docs/CIMR-MRD-v5.0-20230211_(Issued).pdf) — *Copernicus Imaging Microwave Radiometer (CIMR) Mission Requirements Document*  
+- 📄 [Holmes_et_al_2009.pdf](./docs/Holmes_et_al_2009.pdf) — *Land surface temperature from Ka band (37 GHz) passive microwave observations*, JGR, 2009  
+- 📄 [Jimenez_et_al_2017.pdf](./docs/Jimenez_et_al_2017.pdf) — *Inversion of AMSR-E observations for land surface temperature estimation: Methodology and evaluation*, JGR: Atmospheres, 2017
 
 ---
 
