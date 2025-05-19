@@ -93,6 +93,10 @@ This project contributes to the development of L2 algorithms for the CIMR missio
 │   │   ├── plot_temp_evolution.py        # Plot the temporal comparison of temperature and TB (.png)
 │   │   ├── plot.py                       # Plot the TB map (.png)
 │   │   └── process.py                    # data processing and backup (.csv)
+│   ├── merge/
+│   │   └── create_dataset.py             # Merges AMSRE, MODIS and Land Cover data into a single .csv file
+│   ├── land_cover/
+│   │   └── process.py                    # Data processing
 ├── main.py                               # Supporting documentation and references  
 ├── requirements.txt
 └── README.md                             # Project description
