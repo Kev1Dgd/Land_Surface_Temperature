@@ -1,12 +1,10 @@
-# Réarranger le code de manière à ce que lorsque je l'éxécute de haut en bas, il fasse les map de base, les régression puis les map supposées de température.
-# En gros qu'il soit fonctionnel si je l'éxécute dans son intégralité pour la première fois. 
-
 ### Library and function imports ###
 
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
+import xarray as xr
 
 from src.modis.download import authenticate, search_modis_lst, download_results
 from src.modis.process import process_nc_to_csv_light
@@ -17,7 +15,7 @@ from src.modis.utils import check_and_create_file
 
 from src.amsre.download import download_amsre_ae_l2a
 from src.amsre.plot import plot_bt_map, plot_temp_estimated_map
-from src.amsre.process import combine_amsre_files_37ghz, combine_amsre_files_19ghz, merge_amsre_data
+from src.amsre.process import combine_amsre_files_37ghz, combine_amsre_files_19ghz, concat_amsre_files
 from src.amsre.fix_headers import fix_amsre_headers
 
 from src.amsre.matches import generate_daily_matches
@@ -25,6 +23,9 @@ from src.amsre.plot_regressions import plot_stationwise_and_global_regressions_2
 from src.amsre.plot_temp_evolution import plot_seasonal_temp_evolution, plot_seasonal_temp_with_tb_evolution, plot_all_stations_temp_evolution
 
 from src.merge.create_dataset import merge_daily_datasets
+
+from src.land_cover.process import convert_land_cover_nc_to_csv
+from src.land_cover.plot import plot_land_cover_map
 
 
 def main():
@@ -34,7 +35,7 @@ def main():
     n_point = 5000          # Number of sampling points (saves time) 
     Sampling = False        # If you want to sample your maps
     new_graph = False       # If the maps are to be generated again if they already exist
-    
+    '''
     ### MODIS PART ###
 
     print("\n===== MODIS stage: Land Surface Temperature =====")
@@ -51,11 +52,11 @@ def main():
     check_and_create_file("data/analysis/modis/lst_monthly_summary_2005.json", analyze_monthly_data, input_dir="data/processed/modis")
     check_and_create_file("data/analysis/modis/lst_spatial_summary_2005.json",analyze_spatial_data,input_dir="data/processed/modis")   
     print("📈 Analysis completed.")
-    
+    '''
 
     ### AMSRE PART ###
 
-    start_date = datetime(2005, 2, 18)
+    '''start_date = datetime(2005, 1, 1)
     end_date = datetime(2005, 12, 31)
     dates = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
     authenticate()
@@ -64,7 +65,8 @@ def main():
     
     for date in dates :
         # Filter only .hdf files
-        files = [f for f in download_amsre_ae_l2a(date=date) if f.endswith('.hdf')]
+        #files = [f for f in download_amsre_ae_l2a(date=date) if f.endswith('.hdf')]
+        files = [f for f in os.listdir("data/raw/amsre") if f.endswith(".hdf")]
 
         date_str = date.replace('-', '')
 
@@ -74,7 +76,7 @@ def main():
         
         # Maps Generation - 37GHz
         if output_ascending_37 and output_descending_37:
-            print(f"\n===== AMSR-E Map Generation : TB_37GHz and Temperatures obtained from linear regression. Date : {date} =====")
+            print(f"\n===== AMSR-E Map Generation : TB_37GHz. Date : {date} =====")
             # Loading renamed files
             df_ascending_37 = pd.read_csv(output_ascending_37)
             df_descending_37 = pd.read_csv(output_descending_37)
@@ -135,9 +137,9 @@ def main():
             print(f"\n📊✅ 37GHz Maps completed for date : {date}\n")
 
 
-        # Maps Generation - 37GHz
+        # Maps Generation - 19GHz
         if output_ascending_19 and output_descending_19:
-            print(f"\n===== AMSR-E Map Generation : TB_19GHz and Temperatures obtained from linear regression. Date : {date} =====")
+            print(f"\n===== AMSR-E Map Generation : TB_19GHz. Date : {date} =====")
             # Loading renamed files
             df_ascending_19 = pd.read_csv(output_ascending_19)
             df_descending_19 = pd.read_csv(output_descending_19)
@@ -194,36 +196,13 @@ def main():
                     plot_bt_map(pd.concat([df_ascending_19, df_descending_19]), date, pass_type="combined",freq_label="19ghz")
                 else : 
                     print("\n✅ [19GHz] - Combined map already generated\n")
-
-                ### Temperatures generated from linear regression - 19 GHz
-                
-                asc_plot_path_regtemp_19 = f"outputs/amsre/dates/{date}/temp_by_reg_19ghz_map_{date}_ascending.png"
-                des_plot_path_regtemp_19 = f"outputs/amsre/dates/{date}/temp_by_reg_19ghz_map_{date}_descending.png"
-                comb_plot_path_regtemp_19 = f"outputs/amsre/dates/{date}/temp_by_reg_19ghz_map_{date}_combined.png"
-
-                if new_graph or not os.path.exists(asc_plot_path_regtemp_19):
-                    print("\n📈 Visualisation of Ascending Supposed Temperature")
-                    plot_temp_estimated_map(df_ascending_19, date, pass_type="ascending", freq_label="19ghz", a=a, b=b)
-                else : 
-                    print("\n✅ [19GHz] - Ascending supposed temperatures map already generated")
-
-                if new_graph or not os.path.exists(des_plot_path_regtemp_19):    
-                    print("\n📉 Visualisation of Descending Supposed Temperature")
-                    plot_temp_estimated_map(df_descending_19, date, pass_type="descending", freq_label="19ghz", a=a, b=b)
-                else : 
-                    print("\n✅ [19GHz] - Descending supposed temperatures map already generated")
-
-                if new_graph or not os.path.exists(comb_plot_path_regtemp_19):   
-                    print("\n📊 Visualisation of Combined Supposed Temperature datas") 
-                    plot_temp_estimated_map(pd.concat([df_ascending_19, df_descending_19]), date, pass_type="combined", freq_label="19ghz", a=a, b=b)
-                else : 
-                    print("\n✅ [19GHz] - Combined supposed temperatures map already generated")
             
             print(f"\n📊✅ 19 GHz Maps completed for date : {date}\n")
     
 
-    print("\n===== END of AMSR-E TB and Temperature by Regression =====")
-    
+    print("\n===== END of AMSR-E TB and Temperature by Regression =====")'''
+
+    '''
     ### FLUXNET & PLOTS PART ###
     
     print("\n=====📥 Analysis with FLUXNET 📥=====")
@@ -253,7 +232,7 @@ def main():
         output_csv_19 = os.path.join(matched_output_folder_19, f"matched_tb_fluxnet_{date_str}.csv")
         
         if os.path.exists(output_csv_37) and os.path.exists(output_csv_19):
-            print(f"📂 File already exists for {date_str} at the frequency 37GHz, move on to the next one.")
+            print(f"📂 File already exists for {date_str} for both frequencies, move on to the next one.")
             current_date += timedelta(days=1)
             continue
 
@@ -358,18 +337,21 @@ def main():
     if new_graph or not os.path.exists(example_temp_path):
         plot_all_stations_temp_evolution("data/raw/fluxnet/FluxNET_AMSRE.csv")
     else:
-        print("⏭️ All temp graphic already generated, skip.")
+        print("⏭️ All temp graphic already generated, skip.")'''
     
-    # Obtaining regression metrics
-    reg_df_37 = pd.read_csv("data/analysis/amsre/daily_regressions_37GHz")
-    reg_df_19 = pd.read_csv("data/analysis/amsre/daily_regressions_19GHz")
+    ### Temperature generated from linear regression ###
+
+    '''# Obtaining regression metrics
+    reg_df_37 = pd.read_csv("data/analysis/amsre/daily_regressions_37GHz.csv")
+    reg_df_19 = pd.read_csv("data/analysis/amsre/daily_regressions_19GHz.csv")
 
     # Plotting supposed temperature maps - AMSRE
     for date in dates :    
         date_str = date.replace('-', '')
+        date_int = int(date_str)
 
-        row_37 = reg_df_37[reg_df_37['date'] == date_str]  
-        row_19 = reg_df_19[reg_df_19['date'] == date_str] 
+        row_37 = reg_df_37[reg_df_37['date'] == date_int]  
+        row_19 = reg_df_19[reg_df_19['date'] == date_int] 
 
         if not row_37.empty:   
             a37, b37 = row_37["a"].iloc[0], row_37["b"].iloc[0]                    
@@ -382,7 +364,15 @@ def main():
         else:
             print(f"19GHz - Aucune régression disponible pour {date_str}, skip.")
             continue
-            
+        
+        output_ascending_37, output_descending_37 = combine_amsre_files_37ghz(files, date=date)
+        output_ascending_19, output_descending_19 = combine_amsre_files_19ghz(files, date=date)
+
+        df_ascending_37 = pd.read_csv(output_ascending_37)
+        df_descending_37 = pd.read_csv(output_descending_37)
+
+        df_ascending_19 = pd.read_csv(output_ascending_19)
+        df_descending_19 = pd.read_csv(output_descending_19)
         
         ### Temperatures generated from linear regression - 37 GHz
                 
@@ -390,6 +380,8 @@ def main():
         des_plot_path_regtemp_37 = f"outputs/amsre/dates/{date}/temp_by_reg_37ghz_map_{date}_descending.png"
         comb_plot_path_regtemp_37 = f"outputs/amsre/dates/{date}/temp_by_reg_37ghz_map_{date}_combined.png"
 
+        print("\n📊 37GHz Supposed Temperature Maps for date : {date}")
+        
         if new_graph or not os.path.exists(asc_plot_path_regtemp_37):
             print("\n📈 Visualisation of Ascending Supposed Temperature")
             plot_temp_estimated_map(df_ascending_37, date, pass_type="ascending", freq_label="37ghz", a=a37, b=b37)
@@ -414,6 +406,8 @@ def main():
         des_plot_path_regtemp_19 = f"outputs/amsre/dates/{date}/temp_by_reg_19ghz_map_{date}_descending.png"
         comb_plot_path_regtemp_19 = f"outputs/amsre/dates/{date}/temp_by_reg_19ghz_map_{date}_combined.png"
 
+        print("\n📊 19GHz Supposed Temperature Maps for date : {date}")
+
         if new_graph or not os.path.exists(asc_plot_path_regtemp_19):
             print("\n📈 Sampled Visualisation of Ascending Supposed Temperature")
             plot_temp_estimated_map(df_ascending_19, date, pass_type="ascending", freq_label="19ghz", a=a19, b=b19)
@@ -430,19 +424,33 @@ def main():
             print("\n📊 Sampled visualisation of Combined Supposed Temperature datas") 
             plot_temp_estimated_map(pd.concat([df_ascending_19, df_descending_19]), date, pass_type="combined", freq_label="19ghz", a=a19, b=b19)
         else : 
-            print("\n✅ Combined supposed temperatures map already generated") 
+            print("\n✅ Combined supposed temperatures map already generated")'''
 
+    ### LAND COVER PART ###
+    nc_path = "data/raw/land_cover/968_Land_Cover_Class_0.25degree.nc4"
+    land_cover_map_output = "outputs/land_cover/land_cover_map.png"
+    land_cover_csv_output = "data/processed/land_cover/land_cover_classes.csv"
 
-    ### MACHINE LEARNING ### 
+    print("\n===== Convert NetCDF Land Cover to CSV =====")
+    convert_land_cover_nc_to_csv(nc_path=nc_path, output_csv_path=land_cover_csv_output)
 
-    # Preparing the data set
-    print("\n===== Merge all AMSRE csvs into one =====")
-    merge_amsre_data("data/processed/amsre/", "data/processed/amsre/merged_amsre_data.csv")
+    print("\n===== Plot Land Cover Map =====")
+    if new_graph or not os.path.exists(land_cover_map_output):
+            print("\n📊 Visualisation of Land Cover Map")
+            plot_land_cover_map(nc_path=nc_path,output_img_path=land_cover_map_output)
+    else : 
+            print("\n✅ Land Cover map already generated")
+    
 
-    print("\n===== Merge AMSRE, MODIS and Land Cover datas for ML =====")
+    ### MACHINE LEARNING ###
+
+    print("\n===== Merge all AMSRE CSVs into one =====")
+    concat_amsre_files(input_dir="data/processed/amsre/",output_file="data/processed/amsre/merged_amsre_data.csv")
+
+    print("\n===== Merge AMSRE, MODIS and Land Cover data for ML =====")
     merge_daily_datasets()
-    print("\n ✅ AMSRE, MODIS and Land Cover data merge completed")
 
+    print("\n✅ Data merge for ML completed.")
 
 
 if __name__ == "__main__":
