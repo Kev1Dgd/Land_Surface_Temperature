@@ -23,19 +23,18 @@ from src.amsre.matches import generate_daily_matches
 from src.amsre.plot_regressions import plot_stationwise_and_global_regressions_2005, plot_global_tb_vs_temp, plot_brightness_vs_temperature_and_regression, fit_daily_regressions, plot_station_regressions, plot_regression_metrics_evolution
 from src.amsre.plot_temp_evolution import plot_seasonal_temp_evolution, plot_seasonal_temp_with_tb_evolution, plot_all_stations_temp_evolution, plot_temp_mean_amsre_Celsius, plot_temp_mean_amsre_Kelvin
 
-from src.merge.create_dataset import merge_daily_datasets
-
 from src.land_cover.process import convert_land_cover_nc_to_csv
 from src.land_cover.plot import plot_land_cover_map
 
 from src.visualization.maps import plot_difference_map_explicit
 
-from src.model.regression import train_regression
-from src.model.knn import train_knn
-from src.model.svr import train_svr
-from src.model.random_forest import train_random_forest
-from src.model.gradient_boosting import train_gradient_boosting
-from src.model.utils import load_and_merge_data, clean_data, evaluate_model, plot_results
+from src.machine_learning.model.regression import train_regression
+from src.machine_learning.model.knn import train_knn
+from src.machine_learning.model.svr import train_svr
+from src.machine_learning.model.random_forest import train_random_forest
+from src.machine_learning.model.gradient_boosting import train_gradient_boosting
+from src.machine_learning.utils import load_and_merge_data, clean_data, evaluate_model, plot_results
+from src.machine_learning.create_dataset import merge_daily_datasets
 
 
 def main():
@@ -569,8 +568,8 @@ def main():
 
     ### MACHINE LEARNING ###
     
-    MERGED_FOLDER = "data/processed/merged"
-    CLEANED_FILE = "data/processed/cleaned_data.csv"
+    MERGED_FOLDER = "data/processed/machine_learning"
+    CLEANED_FILE = "data/processed/machine_learning/cleaned_data.csv"
     OUTPUT_DIR = "outputs/machine_learning"
 
     '''
