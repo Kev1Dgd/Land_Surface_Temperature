@@ -46,7 +46,6 @@ def match_tb_with_fluxnet(df_fluxnet, df_tb, df_coords, output_path, freq_label)
             "temperature": temp
         })
 
-    # ✅ NE PAS ÉCRIRE UN CSV VIDE
     if not results:
         print(f"⚠️ No valid matches for this day — nothing saved to {output_path}")
         return

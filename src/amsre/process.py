@@ -85,7 +85,7 @@ def combine_amsre_files_19ghz(files, date, output_dir="data/processed/amsre"):
             lat_flat = lat.flatten()
             lon_flat = lon.flatten()
 
-            # Filtrage spatial : ne garder que les points dans la bbox
+            # Spatial filter 
             valid_coords = (lat_flat >= lat_min) & (lat_flat <= lat_max) & (lon_flat >= lon_min) & (lon_flat <= lon_max)
             valid = ~np.isnan(bt_flat) & valid_coords
 
@@ -153,7 +153,6 @@ def extract_bt_37ghz(file_path):
 
         ds.close()
 
-        # Ajustement mineur
         lat = np.where(lat > 90, lat - 180, lat)
         lon = np.where(lon > 180, lon - 360, lon)
         lat = np.round(lat, 2)
@@ -166,11 +165,7 @@ def extract_bt_37ghz(file_path):
         return None, None, None, None
 
 
-import os
-import pandas as pd
-
 def concat_amsre_files(input_dir, output_file):
-    # Liste des dossiers (dates) dans base_dir
     date_folders = sorted([
         d for d in os.listdir(input_dir)
         if os.path.isdir(os.path.join(input_dir, d))
@@ -183,19 +178,19 @@ def concat_amsre_files(input_dir, output_file):
             try:
                 df = pd.read_csv(file_path)
                 all_dfs.append(df)
-                print(f"✅ Chargé {file_path} ({len(df)} lignes)")
+                print(f"✅ {file_path} loaded, ({len(df)} lines)")
             except Exception as e:
-                print(f"⚠️ Erreur lecture {file_path} : {e}")
+                print(f"⚠️ Reading error for {file_path} : {e}")
         else:
-            print(f"⚠️ Fichier manquant : {file_path}")
+            print(f"⚠️ File missing : {file_path}")
 
     if not all_dfs:
-        print("❌ Aucun fichier chargé.")
+        print("❌ No files loaded.")
         return
 
     df_all = pd.concat(all_dfs, ignore_index=True)
     df_all.to_csv(output_file, index=False)
-    print(f"✅ Fusion terminée, fichier sauvegardé : {output_file} ({len(df_all)} lignes)")
+    print(f"✅ Merge complete, file saved in : {output_file} ({len(df_all)} lines)")
 
 
 

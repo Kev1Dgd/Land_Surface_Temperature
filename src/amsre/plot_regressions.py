@@ -11,14 +11,14 @@ def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label
     # Load data
     df = pd.read_csv(csv_path)
 
-    # Data cleansing: removal of missing and inconsistent values
+    # Data cleaning: removal of missing and inconsistent values
     df = df.dropna(subset=[f"brightness_temp_{freq_label[0:2]}v", "temperature"])
     df = df[(df["temperature"] > 180) & (df["temperature"] < 330)]
     df = df[(df[f"brightness_temp_{freq_label[0:2]}v"] > 180) & (df[f"brightness_temp_{freq_label[0:2]}v"] < 330)]
 
-    # ✅ Vérification si le DataFrame est vide ou trop petit
+    # Check if the DataFrame is empty or too small
     if df.shape[0] < 2:
-        print(f"⚠️ Pas assez de données valides pour {date_str}, skipping regression.")
+        print(f"⚠️ Not enough valid data for {date_str}, skipping regression.")
         return
 
     # Variables for regression
@@ -39,10 +39,10 @@ def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label
     a = model.coef_[0][0]
     b = model.intercept_[0]
     r2 = model.score(X, y)
-    plt.title(f"Température FLUXNET vs TB AMSR-E ({freq_label})\nRégression : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
+    plt.title(f"FLUXNET temperature  vs AMSR-E TB  ({freq_label})\nRégression : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
 
-    plt.xlabel("Température de brillance AMSR-E (K)")
-    plt.ylabel("Température FLUXNET (K)")
+    plt.xlabel("Brightness temperature AMSR-E (K)")
+    plt.ylabel("FLUXNET temperature (K)")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
@@ -56,7 +56,7 @@ def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label
     plt.savefig(output_file, dpi=300)
     plt.close()
 
-    print(f"✅ Régression sauvegardée dans {output_file}")
+    print(f"✅ Regression saved in {output_file}")
 
 
 def fit_daily_regressions(folder_path, output_csv_path, freq_label):
@@ -75,7 +75,7 @@ def fit_daily_regressions(folder_path, output_csv_path, freq_label):
                 df = df[(df[f"brightness_temp_{freq_label[0:2]}v"] > 180) & (df[f"brightness_temp_{freq_label[0:2]}v"] < 330)]
 
                 if len(df) < 2:  # If less than 3 points, ignore this day
-                    print(f"⚠️ Pas assez de données pour {date_str}")
+                    print(f"⚠️ Not enough data for {date_str}")
                     continue
 
                 # Linear regression
@@ -124,37 +124,37 @@ def plot_global_tb_vs_temp(matched_folder, freq_label):
     output_path=f"outputs/amsre/global_tb_vs_temp_{freq_label}.png"
     for filename in os.listdir(matched_folder):
         if filename.startswith("matched_tb_fluxnet_") and filename.endswith(".csv"):
-            # Extraire la date depuis le nom du fichier
+            # Extract date from file name
             try:
                 date_str = filename.replace("matched_tb_fluxnet_", "").replace(".csv", "")
                 file_date = datetime.strptime(date_str, "%Y%m%d")
-                saison = get_season_from_month(file_date.month)
+                season = get_season_from_month(file_date.month)
             except Exception as e:
-                print(f"❌ Erreur lors de la lecture de la date dans le fichier {filename} : {e}")
+                print(f"❌ Error reading date from file {filename} : {e}")
                 continue
 
             df = pd.read_csv(os.path.join(matched_folder, filename))
             df = df.dropna(subset=[f"brightness_temp_{freq_label[0:2]}v", "temperature"])
             df = df[(df["temperature"] > 180) & (df["temperature"] < 330)]
-            df = df[(df[f"brightness_temp_{freq_label[0:2]}v"] > 180) & (df[f"brightness_temp_{freq_label[0:2]}v"] < 330)]
-            df["saison"] = saison  # Ajout de la saison comme colonne
+            df = df[(df[f"brightness_temp_{freq_label[0:2]}v"] >= 220) & (df[f"brightness_temp_{freq_label[0:2]}v"] < 330)]
+            df["season"] = season  # Add season as column
 
             all_data.append(df)
 
     if not all_data:
-        print("❗ Aucune donnée trouvée ou utilisable.")
+        print("❗ ANo data found or usable.")
         return
 
     df_all = pd.concat(all_data, ignore_index=True)
 
-    # Régression globale
+    # Overall regression
     X = df_all[f"brightness_temp_{freq_label[0:2]}v"].values.reshape(-1, 1)
     y = df_all["temperature"].values.reshape(-1, 1)
     model = LinearRegression()
     model.fit(X, y)
     y_pred = model.predict(X)
 
-    # Couleurs saisonnières
+    # Seasonal colors
     season_colors = {
         "Winter": "blue",
         "Easter": "green",
@@ -162,32 +162,34 @@ def plot_global_tb_vs_temp(matched_folder, freq_label):
         "Autumn": "brown"
     }
 
-    # Tracé
+    # Plot
     plt.figure(figsize=(10, 6))
-    for saison, group in df_all.groupby("saison"):
+    for season, group in df_all.groupby("season"):
         plt.scatter(
             group[f"brightness_temp_{freq_label[0:2]}v"],
             group["temperature"],
             s=10,
             alpha=0.4,
-            color=season_colors[saison],
-            label=saison
+            color=season_colors[season],
+            label=season
         )
 
-    plt.plot(X, y_pred, color='red', linewidth=2, label="Régression linéaire")
-    plt.xlabel("Température de brillance AMSR-E (K)")
-    plt.ylabel("Température FLUXNET (K)")
+    plt.plot(X, y_pred, color='red', linewidth=2, label="Linear regression")
+    plt.xlabel("AMSR-E brightness temperature (K)")
+    plt.ylabel("FLUXNET temperature (K)")
     r2 = model.score(X, y)
     a = model.coef_[0][0]
     b = model.intercept_[0]
-    plt.title(f"Régression globale 2005 for the {freq_label} frequency : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
+    plt.title(f"Global 2005 regression for the {freq_label} frequency : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(output_path, dpi=300)
     plt.close()
 
-    print(f"✅ Graphe global enregistré : {output_path}")
+    print(f"✅ Global plot saved in : {output_path}")
+
+    return a,b
 
 
 def plot_stationwise_and_global_regressions_2005(csv_path, freq_label, output_dir="outputs/fluxnet/stationswise_regressions"):
@@ -234,7 +236,7 @@ def plot_stationwise_and_global_regressions_2005(csv_path, freq_label, output_di
         plt.figure(figsize=(8, 6))
         plt.scatter(df_station["TIMESTAMP_START"], df_station["temperature"], label=f"{station}", alpha=0.5)
         plt.plot(df_station["TIMESTAMP_START"], y_pred, color="red", label="Régression")
-        plt.title(f"T FLUXNET - {station} (2005)")
+        plt.title(f"FLUXNET Temperature  - {station} (2005)")
         plt.xlabel("Date")
         plt.ylabel("Température (K)")
         plt.legend()
@@ -270,7 +272,7 @@ def plot_stationwise_and_global_regressions_2005(csv_path, freq_label, output_di
         b = model_all.intercept_[0]
         r2 = model_all.score(X_all, y_all)
 
-        plt.title(f"Global regression FLUXNET 2005\nT = {a:.2f} × date + {b:.2f} (R² = {r2:.2f})")
+        plt.title(f"Global FLUXNET regression in 2005\nT = {a:.2f} × date + {b:.2f} (R² = {r2:.2f})")
         plt.xlabel("Date")
         plt.ylabel("Température (K)")
         plt.legend()
@@ -281,20 +283,19 @@ def plot_stationwise_and_global_regressions_2005(csv_path, freq_label, output_di
         plt.savefig(global_path, dpi=300)
         plt.close()
         print(f"✅ Global regression saved : {global_path}")
-
-
+        
 
 def plot_station_regressions(df_matched1, df_matched2, output_dir="outputs/amsre/stations"):
     os.makedirs(output_dir, exist_ok=True)
 
-    # Intersections des stations
+    #  Station intersections
     common_stations = set(df_matched1["station"]).intersection(df_matched2["station"])
 
     for station in common_stations:
         group1 = df_matched1[df_matched1["station"] == station]
         group2 = df_matched2[df_matched2["station"] == station]
 
-        # Vérification données valides
+        # Checking valid data
         x1, y1 = group1["brightness_temp_37v"], group1["temperature"]
         x2, y2 = group2["brightness_temp_19v"], group2["temperature"]
 
@@ -302,7 +303,7 @@ def plot_station_regressions(df_matched1, df_matched2, output_dir="outputs/amsre
         valid2 = np.isfinite(x2) & np.isfinite(y2)
 
         if valid1.sum() < 2 and valid2.sum() < 2:
-            print(f"⏭️ Pas assez de données valides pour {station}, skip.")
+            print(f"⏭️ Not enough valid data for {station}, skip.")
             continue
 
         plt.figure(figsize=(8, 6))
@@ -319,8 +320,8 @@ def plot_station_regressions(df_matched1, df_matched2, output_dir="outputs/amsre
             plt.scatter(x2, y2, alpha=0.4, label="19GHz", color="pink")
             plt.plot(x2, poly2(x2), color="red", label=f"Régression 2: y = {coef2[0]:.2f}x + {coef2[1]:.2f}")
 
-        plt.xlabel("Température de brillance (tb)")
-        plt.ylabel("Température mesurée")
+        plt.xlabel("Brightness temperature (tb)")
+        plt.ylabel("Measured temperature")
         plt.title(f"Régressions température vs tb - Station {station}")
         plt.legend()
         plt.grid(True)
@@ -338,28 +339,11 @@ def plot_regression_metrics_evolution(regression_csv_path, freq_label):
 
     plt.figure(figsize=(12, 6))
 
-    # Tracer les courbes
-    plt.plot(df["date"], df["a"], label="Pente (a)", color="blue")
     plt.plot(df["date"], df["r2"], label="R²", color="green")
     plt.plot(df["date"], df["rmse"], label="RMSE", color="red")
 
-    # Fixe l'axe des ordonnées
-    plt.ylim(-20, 20)
-
-    # Annoter les points hors limite
-    for i, row in df.iterrows():
-        for metric, color in zip(['a', 'r2', 'rmse'], ['blue', 'green', 'red']):
-            value = row[metric]
-            if value < -20 or value > 20:
-                plt.annotate(f"{value:.1f}", 
-                             (row["date"], min(20, max(-20, value))), 
-                             textcoords="offset points", 
-                             xytext=(0, 5), 
-                             ha='center', 
-                             fontsize=8, 
-                             color=color)
-
-    plt.title(f"Évolution temporelle des métriques de régression {freq_label}")
+    plt.ylim(-2, 7)
+    plt.title(f"Temporal evolution of regression metrics {freq_label}")
     plt.xlabel("Date")
     plt.ylabel("Valeurs")
     plt.legend()
@@ -367,5 +351,5 @@ def plot_regression_metrics_evolution(regression_csv_path, freq_label):
     plt.tight_layout()
     plt.savefig(output_path, dpi=300)
     plt.close()
-    print(f"✅ Graphe des métriques sauvegardé : {output_path}")
+    print(f"✅ Saved metrics graph : {output_path}")
 
