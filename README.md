@@ -75,19 +75,24 @@ A regression model is currently under development with the following characteris
 ```
 .
 ├── data/
-│ ├── raw/ # Original satellite, land cover, FLUXNET data
+│ ├── raw/                                                     # Original satellite, land cover, FLUXNET data
 │ ├── processed/                                               # Cleaned & matched datasets
 │ ├── analysis/                                                # Regression metrics, analysis tables
 ├── outputs/                                                   # All plots (.png)
 │ ├── amsre/
+│ ├── comparisons/
 │ ├── fluxnet/
+│ ├── land_cover/
+│ ├── machine_learning/
 │ └── modis/
 ├── notebooks/                                                 # Development notebooks
 ├── src/
 │ ├── amsre/                                                   # AMSR-E processing, matching, plotting
-│ ├── modis/                                                   # MODIS downloading, processing, analysis
 │ ├── land_cover/                                              # Land cover extraction and cleaning
-│ └── merge/                                                   # Data fusion scripts
+│ ├── merge/                                                   # Data fusion scripts
+│ ├── model/                                                   # Set of models for Machine Learning
+│ ├── modis/                                                   # MODIS downloading, processing, analysis
+│ └── visualization/                                           # Difference map between MODIS and AMSRE by regression
 ├── docs/                                                      # Technical notes and references
 ├── main.py                                                    # Main script for executing pipeline
 ├── requirements.txt
