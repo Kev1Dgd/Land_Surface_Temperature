@@ -22,7 +22,7 @@ def _load_and_prepare_csv(path, lat_col="lat", lon_col="lon", date_col=None, dat
 def merge_daily_datasets(modis_folder="data/processed/modis",
                          amsre_folder="data/processed/amsre",
                          land_cover_path="data/raw/land_cover/968_Land_Cover_Class_0.25degree.nc4",
-                         output_folder="data/processed/merged"):
+                         output_folder="data/processed/machine_learning"):
     os.makedirs(output_folder, exist_ok=True)
     modis_files = sorted(glob(os.path.join(modis_folder, "*.csv")))
 
