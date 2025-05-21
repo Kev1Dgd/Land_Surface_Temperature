@@ -8,18 +8,18 @@ def load_land_cover_map(nc_path, target_lat, target_lon, method="nearest"):
     print(f"📦 Load land cover map from : {nc_path}")
     ds = xr.open_dataset(nc_path)
 
-    # Extraire les données
+    # Extracting data
     lc = ds["land_cover_class"].squeeze()  # 2D
     lats = ds["latitude"].values
     lons = ds["longitude"].values
     values = lc.values
 
-    # Créer une grille des coordonnées sources
+    # Create a grid of source coordinates
     lon_grid, lat_grid = np.meshgrid(lons, lats)
     points = np.column_stack((lat_grid.ravel(), lon_grid.ravel()))
     values_flat = values.ravel()
 
-    # Préparer les points cibles
+    # Preparing target points
     target_points = np.column_stack((target_lat, target_lon))
 
     print("🧮 Interpolation of land use classes...")
@@ -36,4 +36,4 @@ def convert_land_cover_nc_to_csv(nc_path, output_csv_path):
     land_cover = ds[var_name]
     df = land_cover.to_dataframe().reset_index()
     df.to_csv(output_csv_path, index=False)
-    print(f"✅ CSV saved at : {output_csv_path}")
+    print(f"✅ CSV saved in : {output_csv_path}")
