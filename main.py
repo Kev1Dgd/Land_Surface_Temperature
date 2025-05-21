@@ -5,13 +5,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import xarray as xr
+from sklearn.model_selection import train_test_split
 
 from src.modis.download import authenticate, search_modis_lst, download_results
-from src.modis.process import process_nc_to_csv_light
-from src.modis.plot import process_all_modis_csv
+from src.modis.process import process_nc_to_csv_light, process_all_modis_csv
 from src.modis.analyze import analyze_all_files 
 from src.modis.analysis_utils import analyze_monthly_data, analyze_spatial_data
 from src.modis.utils import check_and_create_file
+from src.modis.plot import plot_temp_mean_Celsius, plot_temp_mean_Kelvin
 
 from src.amsre.download import download_amsre_ae_l2a
 from src.amsre.plot import plot_bt_map, plot_temp_estimated_map
@@ -20,12 +21,21 @@ from src.amsre.fix_headers import fix_amsre_headers
 
 from src.amsre.matches import generate_daily_matches
 from src.amsre.plot_regressions import plot_stationwise_and_global_regressions_2005, plot_global_tb_vs_temp, plot_brightness_vs_temperature_and_regression, fit_daily_regressions, plot_station_regressions, plot_regression_metrics_evolution
-from src.amsre.plot_temp_evolution import plot_seasonal_temp_evolution, plot_seasonal_temp_with_tb_evolution, plot_all_stations_temp_evolution
+from src.amsre.plot_temp_evolution import plot_seasonal_temp_evolution, plot_seasonal_temp_with_tb_evolution, plot_all_stations_temp_evolution, plot_temp_mean_amsre_Celsius, plot_temp_mean_amsre_Kelvin
 
 from src.merge.create_dataset import merge_daily_datasets
 
 from src.land_cover.process import convert_land_cover_nc_to_csv
 from src.land_cover.plot import plot_land_cover_map
+
+from src.visualization.maps import plot_difference_map_explicit
+
+from src.model.regression import train_regression
+from src.model.knn import train_knn
+from src.model.svr import train_svr
+from src.model.random_forest import train_random_forest
+from src.model.gradient_boosting import train_gradient_boosting
+from src.model.utils import load_and_merge_data, clean_data, evaluate_model, plot_results
 
 
 def main():
@@ -34,10 +44,10 @@ def main():
 
     n_point = 5000          # Number of sampling points (saves time) 
     Sampling = False        # If you want to sample your maps
-    new_graph = False       # If the maps are to be generated again if they already exist
-    '''
+    new_graph = True       # If the maps are to be generated again if they already exist
+    
     ### MODIS PART ###
-
+    '''
     print("\n===== MODIS stage: Land Surface Temperature =====")
 
     # Processing MODIS files
@@ -51,15 +61,15 @@ def main():
     check_and_create_file("data/analysis/modis/lst_summary_2005.json", analyze_all_files, input_dir="data/processed/modis")
     check_and_create_file("data/analysis/modis/lst_monthly_summary_2005.json", analyze_monthly_data, input_dir="data/processed/modis")
     check_and_create_file("data/analysis/modis/lst_spatial_summary_2005.json",analyze_spatial_data,input_dir="data/processed/modis")   
-    print("📈 Analysis completed.")
-    '''
+    print("📈 Analysis completed.")'''
+
 
     ### AMSRE PART ###
 
-    '''start_date = datetime(2005, 1, 1)
+    start_date = datetime(2005, 1, 1)
     end_date = datetime(2005, 12, 31)
     dates = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
-    authenticate()
+    '''authenticate()
     
     print("\n===== AMSR-E stage: TB 37GHz processing and plotting map =====")
     
@@ -202,9 +212,9 @@ def main():
 
     print("\n===== END of AMSR-E TB and Temperature by Regression =====")'''
 
-    '''
-    ### FLUXNET & PLOTS PART ###
     
+    ### FLUXNET & PLOTS PART ###
+    '''
     print("\n=====📥 Analysis with FLUXNET 📥=====")
     fluxnet_path = "data/raw/fluxnet/FluxNET_AMSRE.csv"
     coords_path = "data/processed/fluxnet/fluxnet_station_coordinates.csv"
@@ -286,16 +296,16 @@ def main():
     output_regression_csv_37 = "data/analysis/amsre/daily_regressions_37GHz.csv"
     fit_daily_regressions(matched_output_folder_37, output_regression_csv_37, "37GHz")
     plot_regression_metrics_evolution(output_regression_csv_37,"37GHz")
-    plot_global_tb_vs_temp("data/processed/amsre/matched/37GHz", "37GHz")
+    aglob37, bglob37 = plot_global_tb_vs_temp("data/processed/amsre/matched/37GHz", "37GHz")
 
 
     print("\n===== Daily regression TB vs Temperature (multi-day) for the 19GHz frequency =====")
     output_regression_csv_19 = "data/analysis/amsre/daily_regressions_19GHz.csv"
     fit_daily_regressions(matched_output_folder_19, output_regression_csv_19, "19GHz")
     plot_regression_metrics_evolution(output_regression_csv_19,"19GHz")
-    plot_global_tb_vs_temp("data/processed/amsre/matched/19GHz", "19GHz")
+    aglob19, bglob19 = plot_global_tb_vs_temp("data/processed/amsre/matched/19GHz", "19GHz")
 
-
+    
     print("\n===== Régressions TB vs Température for each station =====")
     all_matched_df_37 = pd.concat([pd.read_csv(os.path.join(matched_output_folder_37, f)) for f in os.listdir(matched_output_folder_37) if f.endswith(".csv")],ignore_index=True)
     all_matched_df_19 = pd.concat([pd.read_csv(os.path.join(matched_output_folder_19, f)) for f in os.listdir(matched_output_folder_19) if f.endswith(".csv")],ignore_index=True)
@@ -324,13 +334,14 @@ def main():
 
     print("\n===== Évolution saisonnière température + TB AMSR-E (comparaison) =====")
     seasonal_tb_dir = "outputs/fluxnet/seasonal_temp_vs_tb"
+    example_station = "FLX_FR-LBr_FLUXNET2015_FULLSET_1996-2008_1-4"
     example_tb_path = os.path.join(seasonal_tb_dir, f"temp_vs_tb_seasonal_{example_station}.png")
     if new_graph or not os.path.exists(example_tb_path):
         plot_seasonal_temp_with_tb_evolution()
     else:
         print("⏭️ TB vs Temp graphics already generated, skip.")
 
-
+    
     print("\n===== Évolution temporelle de toutes les températures =====")
     seasonal_tb_dir = "outputs/fluxnet/seasonal_temp_vs_tb"
     example_temp_path = os.path.join(seasonal_tb_dir, f"temp_by_station.png")
@@ -340,31 +351,11 @@ def main():
         print("⏭️ All temp graphic already generated, skip.")'''
     
     ### Temperature generated from linear regression ###
-
-    '''# Obtaining regression metrics
-    reg_df_37 = pd.read_csv("data/analysis/amsre/daily_regressions_37GHz.csv")
-    reg_df_19 = pd.read_csv("data/analysis/amsre/daily_regressions_19GHz.csv")
+    '''
+    files = [f for f in os.listdir("data/raw/amsre") if f.endswith(".hdf")]         # A supprimer
 
     # Plotting supposed temperature maps - AMSRE
-    for date in dates :    
-        date_str = date.replace('-', '')
-        date_int = int(date_str)
-
-        row_37 = reg_df_37[reg_df_37['date'] == date_int]  
-        row_19 = reg_df_19[reg_df_19['date'] == date_int] 
-
-        if not row_37.empty:   
-            a37, b37 = row_37["a"].iloc[0], row_37["b"].iloc[0]                    
-        else:
-            print(f"37GHz - Aucune régression disponible pour {date_str}, skip.")
-            continue
-            
-        if not row_19.empty:   
-            a19, b19 = row_19["a"].iloc[0], row_19["b"].iloc[0]  
-        else:
-            print(f"19GHz - Aucune régression disponible pour {date_str}, skip.")
-            continue
-        
+    for date in dates :          
         output_ascending_37, output_descending_37 = combine_amsre_files_37ghz(files, date=date)
         output_ascending_19, output_descending_19 = combine_amsre_files_19ghz(files, date=date)
 
@@ -380,23 +371,23 @@ def main():
         des_plot_path_regtemp_37 = f"outputs/amsre/dates/{date}/temp_by_reg_37ghz_map_{date}_descending.png"
         comb_plot_path_regtemp_37 = f"outputs/amsre/dates/{date}/temp_by_reg_37ghz_map_{date}_combined.png"
 
-        print("\n📊 37GHz Supposed Temperature Maps for date : {date}")
+        print(f"\n📊 37GHz Supposed Temperature Maps for date : {date}")
         
         if new_graph or not os.path.exists(asc_plot_path_regtemp_37):
             print("\n📈 Visualisation of Ascending Supposed Temperature")
-            plot_temp_estimated_map(df_ascending_37, date, pass_type="ascending", freq_label="37ghz", a=a37, b=b37)
+            plot_temp_estimated_map(df_ascending_37, date, pass_type="ascending", freq_label="37ghz", a=aglob37, b=bglob37)
         else : 
             print("\n✅ [37GHz] - Ascending supposed temperatures map already generated")
 
         if new_graph or not os.path.exists(des_plot_path_regtemp_37):    
             print("\n📉 Visualisation of Descending Supposed Temperature")
-            plot_temp_estimated_map(df_descending_37, date, pass_type="descending", freq_label="37ghz", a=a37, b=b37)
+            plot_temp_estimated_map(df_descending_37, date, pass_type="descending", freq_label="37ghz", a=aglob37, b=bglob37)
         else : 
             print("\n✅ [37GHz] - Descending supposed temperatures map already generated")
 
         if new_graph or not os.path.exists(comb_plot_path_regtemp_37):   
             print("\n📊 Visualisation of Combined Supposed Temperature datas") 
-            plot_temp_estimated_map(pd.concat([df_ascending_37, df_descending_37]), date, pass_type="combined", freq_label="37ghz", a=a37, b=b37)
+            plot_temp_estimated_map(pd.concat([df_ascending_37, df_descending_37]), date, pass_type="combined", freq_label="37ghz", a=aglob37, b=bglob37)
         else : 
             print("\n✅ [37GHz] - Combined supposed temperatures map already generated")       
 
@@ -406,27 +397,161 @@ def main():
         des_plot_path_regtemp_19 = f"outputs/amsre/dates/{date}/temp_by_reg_19ghz_map_{date}_descending.png"
         comb_plot_path_regtemp_19 = f"outputs/amsre/dates/{date}/temp_by_reg_19ghz_map_{date}_combined.png"
 
-        print("\n📊 19GHz Supposed Temperature Maps for date : {date}")
+        print(f"\n📊 19GHz Supposed Temperature Maps for date : {date}")
 
         if new_graph or not os.path.exists(asc_plot_path_regtemp_19):
             print("\n📈 Sampled Visualisation of Ascending Supposed Temperature")
-            plot_temp_estimated_map(df_ascending_19, date, pass_type="ascending", freq_label="19ghz", a=a19, b=b19)
+            plot_temp_estimated_map(df_ascending_19, date, pass_type="ascending", freq_label="19ghz", a=aglob19, b=bglob19)
         else : 
             print("\n✅ [19GHz] - Ascending supposed temperatures map already generated")
 
         if new_graph or not os.path.exists(des_plot_path_regtemp_19):    
             print("\n📉 [19GHz] - Sampled visualisation of Descending Supposed Temperature")
-            plot_temp_estimated_map(df_descending_19, date, pass_type="descending", freq_label="19ghz", a=a19, b=b19)
+            plot_temp_estimated_map(df_descending_19, date, pass_type="descending", freq_label="19ghz", a=aglob19, b=bglob19)
         else : 
             print("\n✅ [19GHz] - Descending supposed temperatures map already generated")
 
         if new_graph or not os.path.exists(comb_plot_path_regtemp_19):   
             print("\n📊 Sampled visualisation of Combined Supposed Temperature datas") 
-            plot_temp_estimated_map(pd.concat([df_ascending_19, df_descending_19]), date, pass_type="combined", freq_label="19ghz", a=a19, b=b19)
+            plot_temp_estimated_map(pd.concat([df_ascending_19, df_descending_19]), date, pass_type="combined", freq_label="19ghz", a=aglob19, b=bglob19)
         else : 
             print("\n✅ Combined supposed temperatures map already generated")'''
+    
+    ### Average temperature maps ###
+    '''
+    output_file_average_temp_kelvin_amsre_19 = "outputs/amsre/mean_temp_2005_19GHz_Kelvin.png"
+    output_file_average_temp_celsius_amsre_19 = "outputs/amsre/mean_temp_2005_19GHz_Celsius.png"
+
+    output_file_average_temp_kelvin_amsre_37 = "outputs/amsre/mean_temp_2005_37GHz_Kelvin.png"
+    output_file_average_temp_celsius_amsre_37 = "outputs/amsre/mean_temp_2005_37GHz_Celsius.png"
+
+    input_dir = "data/processed/modis" 
+    csv_dir_Kelvin = "data/processed/modis/mean_temp_2005_Kelvin.csv"
+    csv_dir_Celsius = "data/processed/modis/mean_temp_2005_Celsius.csv"
+    output_file_Kelvin = "outputs/modis/mean_temp_2005_Kelvin.png"
+    output_file_Celsius = "outputs/modis/mean_temp_2005_Celsius.png"
+
+    # AMSRE #
+    
+    if new_graph or not os.path.exists(output_file_average_temp_kelvin_amsre_19): 
+        print("\n📊 19GHz - Generation of the AMSRE average annual calculated temperature map in Kelvin ")
+        plot_temp_mean_amsre_Kelvin(freq_label="19")
+        print(f"\n✅ AMSRE average annual calculated temperature map in Kelvin generated at {output_file_average_temp_celsius_amsre_19}")
+    else : 
+        print("\n✅ AMSRE average annual calculated temperature map in Kelvin already generated")
+    
+    if new_graph or not os.path.exists(output_file_average_temp_kelvin_amsre_19): 
+        print("\n📊 19GHz - Generation of the AMSRE average annual calculated temperature map in Celsius")
+        plot_temp_mean_amsre_Celsius(freq="19")
+        print(f"\n✅ AMSRE average annual calculated temperature map generated at {output_file_average_temp_kelvin_amsre_19}")
+    else : 
+        print("\n✅ AMSRE average annual calculated temperature map generated")
+    
+    if new_graph or not os.path.exists(output_file_average_temp_kelvin_amsre_37): 
+        print("\n📊 37GHz - Generation of the AMSRE average annual calculated temperature map in Kelvin ")
+        plot_temp_mean_amsre_Kelvin(freq_label="37")
+        print(f"\n✅ AMSRE average annual calculated temperature map in Kelvin generated at {output_file_average_temp_celsius_amsre_37}")
+    else : 
+        print("\n✅ AMSRE average annual calculated temperature map in Kelvin already generated")
+    
+    if new_graph or not os.path.exists(output_file_average_temp_kelvin_amsre_37): 
+        print("\n📊 37GHz - Generation of the AMSRE average annual calculated temperature map in Celsius")
+        plot_temp_mean_amsre_Celsius(freq="37")
+        print(f"\n✅ AMSRE average annual calculated temperature map generated at {output_file_average_temp_kelvin_amsre_37}")
+    else : 
+        print("\n✅ AMSRE average annual calculated temperature map generated")
+    
+    # MODIS #
+    
+    if new_graph or not os.path.exists(output_file_Kelvin): 
+        print("\n📊 Generation of the average annual temperature map in Kelvin ")
+        plot_temp_mean_Kelvin(input_dir,csv_dir_Kelvin,output_file_Kelvin)
+        print(f"\n✅ Map of average annual temperatures in Kelvin generated at {output_file_Kelvin}")
+    else : 
+        print("\n✅ Map of average annual temperatures in Kelvin already generated")
+    
+    if new_graph or not os.path.exists(output_file_Celsius): 
+        print("\n📊 Generation of the average annual temperature map in Celsius")
+        plot_temp_mean_Celsius(input_dir,csv_dir_Celsius,output_file_Celsius)
+        print(f"\n✅ Map of average annual temperatures in Celsius generated at {output_file_Celsius}")
+    else : 
+        print("\n✅ Map of average annual temperatures in Celsius already generated")'''
+
+    # MODIS vs 37GHz - Kelvin
+    '''
+    if new_graph or not os.path.exists("outputs/comparisons/diff_MODIS_37GHz_Kelvin.png"): 
+        print("\n📊 Generation of the difference average annual temperature map between MODIS et AMSRE 37GHz in Kelvin")
+        
+        plot_difference_map_explicit(
+            modis_csv="data/processed/modis/mean_temp_2005_Kelvin.csv",
+            amsre_csv="data/processed/amsre/mean_temp_2005_37_Kelvin.csv",
+            modis_col="LST_Kelvin_mean",
+            amsre_col="temp_K_mean",
+            output_path="outputs/comparisons/diff_MODIS_37GHz_Kelvin.png",
+            title="Différence MODIS - AMSRE (37GHz) [Kelvin]",
+            color_label="Différence de température (K)")
+        
+        print(f"🖼️ Map of the difference average annual temperatures between MODIS et AMSRE 37GHz in Kelvin generated at : outputs/comparisons/diff_MODIS_37GHz_Kelvin.png")
+    else : 
+        print("\n✅ Map of the difference average annual temperatures between MODIS et AMSRE 37GHz in Kelvin already generated")
+
+
+    # MODIS vs 37GHz - Celsius
+    if new_graph or not os.path.exists("outputs/comparisons/diff_MODIS_37GHz_Celsius.png"): 
+        print("\n📊 Generation of the difference average annual temperature map between MODIS et AMSRE 37GHz in Celsius")
+        
+        plot_difference_map_explicit(
+            modis_csv="data/processed/modis/mean_temp_2005_Celsius.csv",
+            amsre_csv="data/processed/amsre/mean_temp_2005_37_Celsius.csv",
+            modis_col="LST_Celsius_mean",
+            amsre_col="temp_C_mean",
+            output_path="outputs/comparisons/diff_MODIS_37GHz_Celsius.png",
+            title="Différence MODIS - AMSRE (37GHz) [Celsius]",
+            color_label="Différence de température (°C)")
+        
+        print(f"🖼️ Map of the difference average annual temperatures between MODIS et AMSRE 37GHz in Celsius generated at : outputs/comparisons/diff_MODIS_37GHz_Celsius.png")
+    else : 
+        print("\n✅ Map of the difference average annual temperatures between MODIS et AMSRE 37GHz in Celsius already generated")
+
+
+    # MODIS vs 19GHz - Kelvin
+    if new_graph or not os.path.exists("outputs/comparisons/diff_MODIS_19GHz_Kelvin.png"): 
+        print("\n📊 Generation of the difference average annual temperature map between MODIS et AMSRE 19GHz in Kelvin")
+        
+        plot_difference_map_explicit(
+            modis_csv="data/processed/modis/mean_temp_2005_Kelvin.csv",
+            amsre_csv="data/processed/amsre/mean_temp_2005_19_Kelvin.csv",
+            modis_col="LST_Kelvin_mean",
+            amsre_col="temp_K_mean",
+            output_path="outputs/comparisons/diff_MODIS_19GHz_Kelvin.png",
+            title="Différence MODIS - AMSRE (19GHz) [Kelvin]",
+            color_label="Différence de température (K)")
+        
+        print(f"🖼️ Map of the difference average annual temperatures between MODIS et AMSRE 19GHz in Kelvin generated at : outputs/comparisons/diff_MODIS_19GHz_Kelvin.png")
+    else : 
+        print("\n✅ Map of the difference average annual temperatures between MODIS et AMSRE 19GHz in Kelvin already generated")
+
+
+    # MODIS vs 19GHz - Celsius
+    if new_graph or not os.path.exists("outputs/comparisons/diff_MODIS_19GHz_Celsius.png"): 
+        print("\n📊 Generation of the difference average annual temperature map between MODIS et AMSRE 19GHz in Celsius")
+        
+        plot_difference_map_explicit(
+            modis_csv="data/processed/modis/mean_temp_2005_Celsius.csv",
+            amsre_csv="data/processed/amsre/mean_temp_2005_19_Celsius.csv",
+            modis_col="LST_Celsius_mean",
+            amsre_col="temp_C_mean",
+            output_path="outputs/comparisons/diff_MODIS_19GHz_Celsius.png",
+            title="Différence MODIS - AMSRE (19GHz) [Celsius]",
+            color_label="Différence de température (°C)")
+        
+        print(f"🖼️ Map of the difference average annual temperatures between MODIS et AMSRE 19GHz in Celsius generated at : outputs/comparisons/diff_MODIS_19GHz_Celsius.png")
+    else : 
+        print("\n✅ Map of the difference average annual temperatures between MODIS et AMSRE 19GHz in Celsius already generated")'''
+    
 
     ### LAND COVER PART ###
+    '''
     nc_path = "data/raw/land_cover/968_Land_Cover_Class_0.25degree.nc4"
     land_cover_map_output = "outputs/land_cover/land_cover_map.png"
     land_cover_csv_output = "data/processed/land_cover/land_cover_classes.csv"
@@ -439,19 +564,66 @@ def main():
             print("\n📊 Visualisation of Land Cover Map")
             plot_land_cover_map(nc_path=nc_path,output_img_path=land_cover_map_output)
     else : 
-            print("\n✅ Land Cover map already generated")
+            print("\n✅ Land Cover map already generated")'''
     
 
     ### MACHINE LEARNING ###
+    
+    MERGED_FOLDER = "data/processed/merged"
+    CLEANED_FILE = "data/processed/cleaned_data.csv"
+    OUTPUT_DIR = "outputs/machine_learning"
 
+    '''
     print("\n===== Merge all AMSRE CSVs into one =====")
     concat_amsre_files(input_dir="data/processed/amsre/",output_file="data/processed/amsre/merged_amsre_data.csv")
 
     print("\n===== Merge AMSRE, MODIS and Land Cover data for ML =====")
     merge_daily_datasets()
 
-    print("\n✅ Data merge for ML completed.")
+    print("\n✅ Data merge for ML completed.")'''
+
+    print("🚀 Data processing and cleansing...")
+    load_and_merge_data(MERGED_FOLDER, output_file=CLEANED_FILE)
+
+    print("📥 Loading the cleaned file...")
+    df = pd.read_csv(CLEANED_FILE)
+
+    # Features (X) and target (y)
+    X = df[["brightness_temp_19v", "brightness_temp_37v"]]
+    y = df["LST_Celsius"]  # ou "LST_Kelvin" si tu préfères
+
+    # Split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Model dictionary
+    models = {
+        "LinearRegression": train_regression,
+        "KNN": train_knn,
+        "SVR": train_svr,
+        "RandomForest": train_random_forest,
+        "GradientBoosting": train_gradient_boosting
+    }
+
+    results = []
+
+    # Training and assessment
+    for name, train_func in models.items():
+        print(f"\n⚙️  Model drive : {name}")
+        model = train_func(X_train, y_train)
+        y_pred, rmse, r2 = evaluate_model(model, X_test, y_test)
+        plot_path = os.path.join(OUTPUT_DIR, f"{name}_prediction.png")
+        plot_results(y_test, y_pred, plot_path)
+        results.append((name, rmse, r2))
+        print(f"📈 {name} — RMSE : {rmse:.2f}, R² : {r2:.2f}")
+
+    # Final summary
+    print("\n📊 Performance summary :")
+    print(f"{'Modèle':<20} {'RMSE':<10} {'R²':<10}")
+    for name, rmse, r2 in results:
+        print(f"{name:<20} {rmse:<10.2f} {r2:<10.2f}")
+
 
 
 if __name__ == "__main__":
     main()
+
