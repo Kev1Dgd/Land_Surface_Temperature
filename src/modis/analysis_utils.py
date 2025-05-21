@@ -5,39 +5,31 @@ import os
 from datetime import datetime, timedelta
 
 def extract_date_from_filename(filename):
-    """
-    Extrait la date du nom de fichier au format 'AYYYYDDD'.
-    Par exemple 'A2005001' donne le 1er janvier 2005.
-    """
-    # Récupérer la partie de la date dans le nom du fichier (par exemple 'A2005001')
-    date_str = filename.split('.')[1][1:]  # Extrait '2005001' de 'A2005001'
-    year = int(date_str[:4])  # Année (ex: 2005)
-    day_of_year = int(date_str[4:])  # Jour de l'année (ex: 1 pour le 1er janvier)
+    # Retrieve the date part of the file name
+    date_str = filename.split('.')[1][1:]  
+    year = int(date_str[:4])  
+    day_of_year = int(date_str[4:])  # Day Of the Year 
     
-    # Convertir cela en une date réelle
-    start_date = datetime(year, 1, 1)  # 1er janvier de l'année
-    date = start_date + timedelta(days=day_of_year - 1)  # Ajouter les jours au 1er janvier
+    # Convert this to a real date
+    start_date = datetime(year, 1, 1)  
+    date = start_date + timedelta(days=day_of_year - 1)  # Add days to January 1st
     
     return date
 
 def load_and_process_csv(filename):
-    """
-    Charge un fichier CSV, extrait la date du nom et ajoute-la au DataFrame.
-    """
-    # Charger le CSV sans les en-têtes si nécessaire
+    # Load CSV without headers if necessary
     df = pd.read_csv(filename)
     
-    # Extraire la date à partir du nom du fichier
+    # Extract date from file name
     date = extract_date_from_filename(filename)
     
-    # Ajouter une nouvelle colonne 'Date' avec la date extraite
+    # Add a new 'Date' column with the extracted date
     df['Date'] = date
     
     return df
 
 
 def compute_basic_stats(df):
-    """Calcule des stats descriptives sur les données LST."""
     stats = {
         "mean": np.nanmean(df.values),
         "min": np.nanmin(df.values),
@@ -47,57 +39,51 @@ def compute_basic_stats(df):
     return stats
 
 def analyze_csv_file(file_path):
-    """Charge un CSV et calcule les statistiques de base."""
     try:
         df = pd.read_csv(file_path)
         return compute_basic_stats(df)
     except Exception as e:
-        print(f"⚠️ Erreur de lecture {file_path} : {e}")
+        print(f"⚠️ Reading error for {file_path} : {e}")
         return None
     
 
 def compute_monthly_mean(df):
-    """Calcule la moyenne mensuelle des valeurs LST."""
-    df['Date'] = pd.to_datetime(df['Date'])  # Assurez-vous qu'une colonne 'Date' existe dans vos CSV
+    df['Date'] = pd.to_datetime(df['Date'])  
     df.set_index('Date', inplace=True)
-    monthly_mean = df.resample('M').mean()  # Moyenne mensuelle
+    monthly_mean = df.resample('M').mean()  # Mensual mean
     return monthly_mean
 
 
 def analyze_monthly_data(input_dir, output_file):
     monthly_summary = {}
     
-    # Liste des fichiers CSV dans le répertoire
     for filename in os.listdir(input_dir):
         if filename.endswith(".csv"):
-            print(f"📊 Analyse mensuelle de {filename}...")
+            print(f"📊 {filename} mensual analysis...")
             
             try:
-                # Charger le fichier et ajouter la colonne 'Date'
+                # Load file and add 'Date' column
                 df = load_and_process_csv(os.path.join(input_dir, filename))
                 
-                # Assurez-vous que les colonnes nécessaires existent
-                # Par exemple, vous pouvez filtrer ou regrouper par mois
-                df['Month'] = df['Date'].dt.month  # Extraire le mois à partir de la colonne 'Date'
+                df['Month'] = df['Date'].dt.month  # Extract month from 'Date' column
                 
-                # Exemple d'analyse simple : moyenne de la température par mois
+                # Example of a simple analysis: average temperature by month
                 monthly_avg = df.groupby('Month')['LST_Day_1km'].mean()
                 
-                # Stocker les résultats mensuels
+                # Store monthly results
                 monthly_summary[filename] = monthly_avg.to_dict()
             
             except Exception as e:
-                print(f"⚠️ Erreur de lecture {filename} : {e}")
+                print(f"⚠️ Reading error for {filename} : {e}")
     
-    # Sauvegarder les résultats dans un fichier JSON
+    # Save results in a JSON file
     with open(output_file, 'w') as f:
         json.dump(monthly_summary, f, indent=2)
 
 
 
 def compute_spatial_mean(df):
-    """Calcule la moyenne des pixels pour chaque fichier LST."""
-    spatial_mean = df.mean().mean()  # Moyenne de toutes les valeurs de la grille
+    spatial_mean = df.mean().mean()  
     return spatial_mean
 
 def analyze_spatial_data(input_dir="data/processed/modis", output_file="data/analysis/lst_spatial_summary_2005.json"):
@@ -108,15 +94,15 @@ def analyze_spatial_data(input_dir="data/processed/modis", output_file="data/ana
     for file_name in os.listdir(input_dir):
         if file_name.endswith(".csv"):
             file_path = os.path.join(input_dir, file_name)
-            print(f"🌍 Analyse spatiale de {file_name}...")
+            print(f"🌍 {file_name} spatial analysis...")
 
             try:
                 df = pd.read_csv(file_path)
                 spatial_mean = compute_spatial_mean(df)
                 spatial_summary[file_name] = spatial_mean
             except Exception as e:
-                print(f"⚠️ Erreur de lecture {file_path} : {e}")
+                print(f"⚠️ Reading error for {file_path} : {e}")
 
     with open(output_file, "w") as f:
         json.dump(spatial_summary, f, indent=2)
-        print(f"✅ Résumé spatial sauvegardé dans {output_file}")
+        print(f"✅ Spatial summary saved in {output_file}")

@@ -9,8 +9,8 @@ def clean_lst_data(lst_data):
 
 def check_and_create_file(output_file, create_func, input_dir):
     if os.path.exists(output_file):
-        print(f"Le fichier {output_file} existe déjà. Aucune nouvelle génération effectuée.")
-        return  # Ne rien faire si le fichier existe déjà
+        print(f"{output_file} file already exists. No new generation carried out.")
+        return
     else:
-        print(f"📂 Création du fichier {output_file}...")
-        create_func(input_dir, output_file)  # Appelle la fonction de création avec les arguments passés
+        print(f"📂 File {output_file} creation...")
+        create_func(input_dir, output_file) 
