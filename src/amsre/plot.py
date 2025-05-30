@@ -3,7 +3,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import os
 
-def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", output_dir="outputs/amsre/dates"):
+def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", output_dir="outputs/amsre/dates/"):
     print(f"🗺️ Generation of the map for pass_type = {pass_type}...")
 
     # If you want the combined card (all the files)
@@ -12,8 +12,9 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
     else:
         df_filtered = df[df["pass_type"] == pass_type]  # Filtering by specific passage
 
-    df_filtered["lat_bin"] = df_filtered["latitude"].round(4)
-    df_filtered["lon_bin"] = df_filtered["longitude"].round(4)
+    df_filtered = df_filtered.copy()
+    df_filtered.loc[:, "lat_bin"] = df_filtered["latitude"].round(4)
+    df_filtered.loc[:, "lon_bin"] = df_filtered["longitude"].round(4)
 
     df_grouped = df_filtered.groupby(["lat_bin", "lon_bin"]).agg({
         f"brightness_temp_{freq_label[:2]}v": "mean"
@@ -51,15 +52,16 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
     ax.gridlines(draw_labels=True, x_inline=False, y_inline=False)
 
     if pass_type == "combined":
-        output_file = os.path.join(date_output_dir, f"tb_{freq_label}_map_{date}.png")
+        output_file = os.path.join(date_output_dir,"brightness_temperature", freq_label, f"tb_{freq_label}_map_{date}.png")
     else:
-        output_file = os.path.join(date_output_dir, f"tb_{freq_label}_map_{date}_{pass_type}.png")
+        output_file = os.path.join(date_output_dir,"brightness_temperature", freq_label, f"tb_{freq_label}_map_{date}_{pass_type}.png")
 
     plt.tight_layout()
     plt.savefig(output_file, dpi=600)
     plt.close()
-
+    del df_filtered, df_grouped, fig, ax, scatter
     print(f"✅ Map saved in {output_file}")
+
 
 def plot_temp_estimated_map(df, date, pass_type, freq_label, a, b, cmap="viridis", output_dir="outputs/amsre/dates"):
     import os

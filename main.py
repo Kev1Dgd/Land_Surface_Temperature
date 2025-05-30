@@ -9,14 +9,11 @@ from sklearn.model_selection import train_test_split
 
 from src.modis.download import authenticate, search_modis_lst, download_results
 from src.modis.process import process_nc_to_csv_light, process_all_modis_csv
-from src.modis.analyze import analyze_all_files 
-from src.modis.analysis_utils import analyze_monthly_data, analyze_spatial_data
-from src.modis.utils import check_and_create_file
 from src.modis.plot import plot_temp_mean_Celsius, plot_temp_mean_Kelvin
 
 from src.amsre.download import download_amsre_ae_l2a
 from src.amsre.plot import plot_bt_map, plot_temp_estimated_map
-from src.amsre.process import combine_amsre_files_37ghz, combine_amsre_files_19ghz, concat_amsre_files
+from src.amsre.process import combine_amsre_files, concat_amsre_files
 from src.amsre.fix_headers import fix_amsre_headers
 
 from src.amsre.matches import generate_daily_matches
@@ -41,176 +38,120 @@ def main():
 
     ### SETTINGS ### 
 
-    n_point = 5000          # Number of sampling points (saves time) 
-    Sampling = False        # If you want to sample your maps
+
     new_graph = True       # If the maps are to be generated again if they already exist
     
+
     ### MODIS PART ###
-    '''
+    
+
     print("\n===== MODIS stage: Land Surface Temperature =====")
 
     # Processing MODIS files
     nc_path = "data/raw/modis/MOD11A1.061_1km_aid0001.nc"  
-    for day in range(0, 364): 
-        process_nc_to_csv_light(nc_path, f"data/processed/modis/modis_lst_{day}.csv", day_index=day)
-    process_all_modis_csv()
+    print(f"👓 Read file MOD11A1.061_1km_aid0001.nc\n")
+    ds = xr.open_dataset(nc_path)
+    start_date = datetime(2005, 1, 1)
 
-    # Analysis
-    print("📊 Starting files analysis...") 
-    check_and_create_file("data/analysis/modis/lst_summary_2005.json", analyze_all_files, input_dir="data/processed/modis")
-    check_and_create_file("data/analysis/modis/lst_monthly_summary_2005.json", analyze_monthly_data, input_dir="data/processed/modis")
-    check_and_create_file("data/analysis/modis/lst_spatial_summary_2005.json",analyze_spatial_data,input_dir="data/processed/modis")   
-    print("📈 Analysis completed.")'''
-
+    for day in range(365): 
+        current_date = start_date + timedelta(days=day)
+        date_str = current_date.strftime("%Y-%m-%d")
+        print(f"\n📅 Processing for date : {date_str}")
+        process_nc_to_csv_light(ds, f"data/processed/modis/modis_lst_{date_str}.csv", day_index=day, variable_name="LST_Day_1km")
+    ds.close()
+    process_all_modis_csv(input_folder="data/processed/modis", output_folder="outputs/modis/dates")
+    
 
     ### AMSRE PART ###
+    
 
     start_date = datetime(2005, 1, 1)
     end_date = datetime(2005, 12, 31)
     dates = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
-    '''authenticate()
+    #authenticate()
     
     print("\n===== AMSR-E stage: TB 37GHz processing and plotting map =====")
     
     for date in dates :
+        date_str = date.replace("-", "")
         # Filter only .hdf files
         #files = [f for f in download_amsre_ae_l2a(date=date) if f.endswith('.hdf')]
-        files = [f for f in os.listdir("data/raw/amsre") if f.endswith(".hdf")]
-
-        date_str = date.replace('-', '')
+        files = [os.path.join('data/raw/amsre',f) for f in os.listdir("data/raw/amsre") if f.endswith(".hdf") and date_str in f]
 
         # Combine the files into two separate CSVs and retrieve the output paths
-        output_ascending_37, output_descending_37 = combine_amsre_files_37ghz(files, date=date)
-        output_ascending_19, output_descending_19 = combine_amsre_files_19ghz(files, date=date)
-        
+        output_ascending_37, output_descending_37 = combine_amsre_files(files, date=date, frequency=37)
+        output_ascending_19, output_descending_19 = combine_amsre_files(files, date=date, frequency=19)
+    '''   
         # Maps Generation - 37GHz
         if output_ascending_37 and output_descending_37:
+        
             print(f"\n===== AMSR-E Map Generation : TB_37GHz. Date : {date} =====")
+
             # Loading renamed files
             df_ascending_37 = pd.read_csv(output_ascending_37)
             df_descending_37 = pd.read_csv(output_descending_37)
 
-            # 5000-point sampling
-            if Sampling :
-                df_ascending_sampled_37 = df_ascending_37.sample(n=n_point) if len(df_ascending_37) > 5000 else df_ascending_37
-                df_descending_sampled_37 = df_descending_37.sample(n=n_point) if len(df_descending_37) > 5000 else df_descending_37
+            asc_plot_path_tb_37 = f"outputs/amsre/dates/{date}/tb_37ghz_map_{date}_ascending.png"
+            des_plot_path_tb_37 = f"outputs/amsre/dates/{date}/tb_37ghz_map_{date}_descending.png"
+            comb_plot_path_tb_37 = f"outputs/amsre/dates/{date}/tb_37ghz_map_{date}.png"
 
-                asc_plot_path_tb_37 = f"outputs/amsre/dates/{date}/tb_37ghz_map_{date}_ascending.png"
-                des_plot_path_tb_37 = f"outputs/amsre/dates/{date}/tb_37ghz_map_{date}_descending.png"
-                comb_plot_path_tb_37 = f"outputs/amsre/dates/{date}/tb_37ghz_map_{date}.png"
+            if new_graph or not os.path.exists(asc_plot_path_tb_37):
+                print("\n📈 visualisation of Ascending")
+                plot_bt_map(df_ascending_37, date, pass_type="ascending",freq_label="37ghz")
+            else : 
+                print("\n✅ [37GHz] - Ascending TB map already generated")
 
-                if new_graph or not os.path.exists(asc_plot_path_tb_37):
-                    print("\n📈 Sampled visualisation of Ascending")
-                    plot_bt_map(df_ascending_sampled_37, date, pass_type="ascending",freq_label="37ghz")
-                else : 
-                    print("\n✅ [37GHz] - Ascending TB map already generated")
+            if new_graph or not os.path.exists(des_plot_path_tb_37):
+                print("\n📉 Visualisation of Descending")
+                plot_bt_map(df_descending_37, date, pass_type="descending",freq_label="37ghz")
+            else : 
+                print("\n✅ [37GHz] - Descending map already generated")
 
-                if new_graph or not os.path.exists(des_plot_path_tb_37):
-                    print("\n📉 Sampled visualisation of Descending")
-                    plot_bt_map(df_descending_sampled_37, date, pass_type="descending",freq_label="37ghz")
-                else : 
-                    print("\n✅ [37GHz] - Descending map already generated")
-
-                if new_graph or not os.path.exists(comb_plot_path_tb_37):
-                    print("\n📊 Sampled visualisation of Combined datas")
-                    plot_bt_map(pd.concat([df_ascending_sampled_37, df_descending_sampled_37]), date, pass_type="combined",freq_label="37ghz")
-                else : 
-                    print("\n✅ [37GHz] - Combined map already generated\n")
+            if new_graph or not os.path.exists(comb_plot_path_tb_37):
+                print("\n📊 Visualisation of Combined datas")
+                plot_bt_map(pd.concat([df_ascending_37, df_descending_37]), date, pass_type="combined",freq_label="37ghz")
+            else : 
+                print("\n✅ [37GHz] - Combined map already generated\n")
             
-            else :  
-
-                asc_plot_path_tb_37 = f"outputs/amsre/dates/{date}/tb_37ghz_map_{date}_ascending.png"
-                des_plot_path_tb_37 = f"outputs/amsre/dates/{date}/tb_37ghz_map_{date}_descending.png"
-                comb_plot_path_tb_37 = f"outputs/amsre/dates/{date}/tb_37ghz_map_{date}.png"
-
-                if new_graph or not os.path.exists(asc_plot_path_tb_37):
-
-                    print("\n📈 visualisation of Ascending")
-                    plot_bt_map(df_ascending_37, date, pass_type="ascending",freq_label="37ghz")
-
-                else : 
-                    print("\n✅ [37GHz] - Ascending TB map already generated")
-
-                if new_graph or not os.path.exists(des_plot_path_tb_37):
-                    print("\n📉 Visualisation of Descending")
-                    plot_bt_map(df_descending_37, date, pass_type="descending",freq_label="37ghz")
-                else : 
-                    print("\n✅ [37GHz] - Descending map already generated")
-
-                if new_graph or not os.path.exists(comb_plot_path_tb_37):
-                    print("\n📊 Visualisation of Combined datas")
-                    plot_bt_map(pd.concat([df_ascending_37, df_descending_37]), date, pass_type="combined",freq_label="37ghz")
-                else : 
-                    print("\n✅ [37GHz] - Combined map already generated\n")
-            
-            print(f"\n📊✅ 37GHz Maps completed for date : {date}\n")
+        print(f"\n📊✅ 37GHz Maps completed for date : {date}\n")
 
 
         # Maps Generation - 19GHz
         if output_ascending_19 and output_descending_19:
+        
             print(f"\n===== AMSR-E Map Generation : TB_19GHz. Date : {date} =====")
+
             # Loading renamed files
             df_ascending_19 = pd.read_csv(output_ascending_19)
             df_descending_19 = pd.read_csv(output_descending_19)
 
-            # 5000-point sampling
-            if Sampling :
-                df_ascending_sampled_19 = df_ascending_19.sample(n=n_point) if len(df_ascending_19) > 5000 else df_ascending_19
-                df_descending_sampled_19 = df_descending_19.sample(n=n_point) if len(df_descending_19) > 5000 else df_descending_19
+            asc_plot_path_tb_19 = f"outputs/amsre/dates/{date}/tb_19ghz_map_{date}_ascending.png"
+            des_plot_path_tb_19 = f"outputs/amsre/dates/{date}/tb_19ghz_map_{date}_descending.png"
+            comb_plot_path_tb_19 = f"outputs/amsre/dates/{date}/tb_19ghz_map_{date}.png"
 
-                asc_plot_path_tb_19 = f"outputs/amsre/dates/{date}/tb_19ghz_map_{date}_ascending.png"
-                des_plot_path_tb_19 = f"outputs/amsre/dates/{date}/tb_19ghz_map_{date}_descending.png"
-                comb_plot_path_tb_19 = f"outputs/amsre/dates/{date}/tb_19ghz_map_{date}.png"
+            if new_graph or not os.path.exists(asc_plot_path_tb_19):
+                print("\n📈 visualisation of Ascending")
+                plot_bt_map(df_ascending_19, date, pass_type="ascending",freq_label="19ghz")
+            else : 
+                print("\n✅ [19GHz] - Ascending TB map already generated")
 
-                if new_graph or not os.path.exists(asc_plot_path_tb_19):
-                    print("\n📈 Sampled visualisation of Ascending")
-                    plot_bt_map(df_ascending_sampled_19, date, pass_type="ascending",freq_label="19ghz")
-                else : 
-                    print("\n✅ [19GHz] - Ascending TB map already generated")
+            if new_graph or not os.path.exists(des_plot_path_tb_19):
+                print("\n📉 Visualisation of Descending")
+                plot_bt_map(df_descending_19, date, pass_type="descending",freq_label="19ghz")
+            else : 
+                print("\n✅ [19GHz] - Descending map already generated")
 
-                if new_graph or not os.path.exists(des_plot_path_tb_19):
-                    print("\n📉 Sampled visualisation of Descending")
-                    plot_bt_map(df_descending_sampled_19, date, pass_type="descending",freq_label="19ghz")
-                else : 
-                    print("\n✅ [19GHz] - Descending map already generated")
-
-                if new_graph or not os.path.exists(comb_plot_path_tb_19):
-                    print("\n📊 Sampled visualisation of Combined datas")
-                    plot_bt_map(pd.concat([df_ascending_sampled_19, df_descending_sampled_19]), date, pass_type="combined",freq_label="19ghz")
-                else : 
-                    print("\n✅ [19GHz] - Combined map already generated\n")
+            if new_graph or not os.path.exists(comb_plot_path_tb_19):
+                print("\n📊 Visualisation of Combined datas")
+                plot_bt_map(pd.concat([df_ascending_19, df_descending_19]), date, pass_type="combined",freq_label="19ghz")
+            else : 
+                print("\n✅ [19GHz] - Combined map already generated\n")
             
-            else :  
-
-                asc_plot_path_tb_19 = f"outputs/amsre/dates/{date}/tb_19ghz_map_{date}_ascending.png"
-                des_plot_path_tb_19 = f"outputs/amsre/dates/{date}/tb_19ghz_map_{date}_descending.png"
-                comb_plot_path_tb_19 = f"outputs/amsre/dates/{date}/tb_19ghz_map_{date}.png"
-
-                if new_graph or not os.path.exists(asc_plot_path_tb_19):
-
-                    print("\n📈 visualisation of Ascending")
-                    plot_bt_map(df_ascending_19, date, pass_type="ascending",freq_label="19ghz")
-
-                else : 
-                    print("\n✅ [19GHz] - Ascending TB map already generated")
-
-                if new_graph or not os.path.exists(des_plot_path_tb_19):
-                    print("\n📉 Visualisation of Descending")
-                    plot_bt_map(df_descending_19, date, pass_type="descending",freq_label="19ghz")
-                else : 
-                    print("\n✅ [19GHz] - Descending map already generated")
-
-                if new_graph or not os.path.exists(comb_plot_path_tb_19):
-                    print("\n📊 Visualisation of Combined datas")
-                    plot_bt_map(pd.concat([df_ascending_19, df_descending_19]), date, pass_type="combined",freq_label="19ghz")
-                else : 
-                    print("\n✅ [19GHz] - Combined map already generated\n")
-            
-            print(f"\n📊✅ 19 GHz Maps completed for date : {date}\n")
+        print(f"\n📊✅ 19 GHz Maps completed for date : {date}\n")
     
 
-    print("\n===== END of AMSR-E TB and Temperature by Regression =====")'''
-
+    print("\n===== END of AMSR-E TB and Temperature by Regression =====")
+    '''
     
     ### FLUXNET & PLOTS PART ###
     '''
@@ -355,8 +296,8 @@ def main():
 
     # Plotting supposed temperature maps - AMSRE
     for date in dates :          
-        output_ascending_37, output_descending_37 = combine_amsre_files_37ghz(files, date=date)
-        output_ascending_19, output_descending_19 = combine_amsre_files_19ghz(files, date=date)
+        output_ascending_37, output_descending_37 = combine_amsre_files(files, date=date, frequency=37)
+        output_ascending_19, output_descending_19 = combine_amsre_files(files, date=date, frequency=19)
 
         df_ascending_37 = pd.read_csv(output_ascending_37)
         df_descending_37 = pd.read_csv(output_descending_37)
@@ -567,19 +508,19 @@ def main():
     
 
     ### MACHINE LEARNING ###
-    
+    '''
     MERGED_FOLDER = "data/processed/machine_learning"
     CLEANED_FILE = "data/processed/machine_learning/cleaned_data.csv"
     OUTPUT_DIR = "outputs/machine_learning"
 
-    '''
+    
     print("\n===== Merge all AMSRE CSVs into one =====")
     concat_amsre_files(input_dir="data/processed/amsre/",output_file="data/processed/amsre/merged_amsre_data.csv")
 
     print("\n===== Merge AMSRE, MODIS and Land Cover data for ML =====")
     merge_daily_datasets()
 
-    print("\n✅ Data merge for ML completed.")'''
+    print("\n✅ Data merge for ML completed.")
 
     print("🚀 Data processing and cleansing...")
     load_and_merge_data(MERGED_FOLDER, output_file=CLEANED_FILE)
@@ -620,9 +561,12 @@ def main():
     print(f"{'Modèle':<20} {'RMSE':<10} {'R²':<10}")
     for name, rmse, r2 in results:
         print(f"{name:<20} {rmse:<10.2f} {r2:<10.2f}")
-
+    '''
 
 
 if __name__ == "__main__":
     main()
+    
+    
+
 

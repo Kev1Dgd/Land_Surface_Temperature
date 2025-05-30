@@ -8,14 +8,14 @@ from tqdm import tqdm
 from glob import glob
 
 
-def plot_modis_lst_map(df, date, cmap="coolwarm", output_dir="outputs/modis/dates"):
-    output_file = os.path.join(output_dir, date, f"modis_lst_map_{date}.png")
+def plot_modis_lst_map(df, date, cmap="coolwarm", output_dir="outputs/modis/daily_maps"):
+    output_file = os.path.join(output_dir, f"modis_lst_map_{date}.png")
     
     if os.path.exists(output_file):
         print(f"⏭️ Existing map, skip : {output_file}")
         return
 
-    print(f"🗺️ MODIS map generation for {date}...")
+    print(f"\n🗺️ MODIS map generation for {date}...")
 
     df["lat_bin"] = df["lat"].round(4)
     df["lon_bin"] = df["lon"].round(4)
@@ -23,10 +23,6 @@ def plot_modis_lst_map(df, date, cmap="coolwarm", output_dir="outputs/modis/date
     df_grouped = df.groupby(["lat_bin", "lon_bin"]).agg({
         "LST_Celsius": "mean"
     }).reset_index()
-
-    # Create a folder for the date
-    date_output_dir = os.path.join(output_dir, date)
-    os.makedirs(date_output_dir, exist_ok=True)
 
     fig = plt.figure(figsize=(12, 8))
     ax = plt.axes(projection=ccrs.PlateCarree())
