@@ -1,0 +1,5 @@
+station,latitude,longitude,brightness_temp_19v,temperature
+AMF_US-Bkg_BASE-BADM_4-1,44.35,-96.84,,279.095
+AMF_US-Blk_BASE-BADM_2-1,44.16,-103.65,,272.225
+AMF_US-FPe_BASE-BADM_2-1,48.31,-105.1,,272.66
+AMF_US-MMS_BASE-BADM_25-5,39.32,-86.41,,284.07
