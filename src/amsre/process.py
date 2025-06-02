@@ -98,7 +98,7 @@ def combine_amsre_files(files, date, frequency, output_dir="data/processed/amsre
             elif '_D' in file_path:
                 all_data_descending.append(data)
             
-            del tb, tb_var, lat, lon, bt, bt_flat, lat_flat, lon_flat, data
+            del lat, lon, bt, bt_flat, lat_flat, lon_flat, data
 
     for data_list, output_path in zip(
         [all_data_ascending, all_data_descending],
@@ -113,3 +113,31 @@ def combine_amsre_files(files, date, frequency, output_dir="data/processed/amsre
             print(f"✅ {df['pass_type'].iloc[0].capitalize()} {freq_str} CSV saved in {output_path}")
 
     return output_path_ascending, output_path_descending
+
+def merge_amsre_csvs_per_frequency(date, base_dir="data/processed/amsre"):
+    output_dir=f"data/processed/amsre/{date}"
+    freq_list = [19, 37]
+    os.makedirs(output_dir, exist_ok=True)
+    
+    for freq in freq_list:
+        freq_str = f"{freq}GHz"
+        date_dir = os.path.join(base_dir, date)
+        
+        asc_path = os.path.join(date_dir, f"amsre_combined_{freq_str}_{date}_ascending.csv")
+        desc_path = os.path.join(date_dir, f"amsre_combined_{freq_str}_{date}_descending.csv")
+        
+        if not (os.path.exists(asc_path) and os.path.exists(desc_path)):
+            print(f"⚠️ Missing CSVs for {freq_str} on {date}. Skipping merge.")
+            continue
+
+        try:
+            df_asc = pd.read_csv(asc_path)
+            df_desc = pd.read_csv(desc_path)
+            
+            merged_df = pd.concat([df_asc, df_desc], ignore_index=True)
+            output_path = os.path.join(output_dir, f"amsre_merged_{freq_str}_{date}.csv")
+            merged_df.to_csv(output_path, index=False)
+            
+            print(f"✅ Merged {freq_str} CSV for {date} saved at {output_path}")
+        except Exception as e:
+            print(f"❌ Error merging CSVs for {freq_str} on {date}: {e}")

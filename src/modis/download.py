@@ -6,7 +6,7 @@ def authenticate():
     print("🔐 Authentification Earthdata...")
     return login()
 
-def search_modis_lst(start_date="2005-01-01", end_date="2005-12-31", bbox=(-10, 35, 10, 45)):
+def search_modis_lst(start_date="2005-01-01", end_date="2005-12-31", bbox = (-12.984, 35.290, 38.018, 64.090)):
     """Search MOD11A1 Terra LST data for a specific time range and bounding box."""
     print(f"🔍 Searching MODIS LST from {start_date} to {end_date}...")
     results = search_data(
