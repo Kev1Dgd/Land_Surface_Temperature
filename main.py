@@ -37,7 +37,8 @@ from src.machine_learning.model.catboost import train_catboost
 from src.machine_learning.model.lightgbm import train_lightgbm
 from src.machine_learning.model.xgboost import train_xgboost
 from src.machine_learning.create_dataset import merge_daily_datasets, concat_amsre_files
-from src.machine_learning.plot import plot_results, plot_prediction_map, plot_mean_map, plot_error_map, plot_mean_error_map
+from src.machine_learning.plot import plot_results, plot_prediction_map, plot_mean_map, plot_error_map, plot_mean_error_map, plot_error_distributions
+from src.machine_learning.correlation import generate_heatmap_correlation
 
 
 def main():
@@ -586,6 +587,8 @@ def main():
     print("\n✅ Data merge for ML completed.")
     load_and_merge_data(MERGED_FOLDER, output_file=CLEANED_FILE)
     df = pd.read_csv(CLEANED_FILE)
+    
+    generate_heatmap_correlation(df, OUTPUT_DIR)
 
     # 2. Train/Test split
     df['month'] = df['date'].str[:7]
@@ -594,7 +597,7 @@ def main():
     df_train = df[df['month'].isin(train_months)]
     df_test = df[df['month'].isin(test_months)]
 
-    feature_cols = ["brightness_temp_mean"]
+    feature_cols = ["brightness_temp_19GHz", "brightness_temp_37GHz", "land_cover_class"]
     target_col = "LST_Celsius"
     X_train = df_train[feature_cols]
     y_train = df_train[target_col]
@@ -627,6 +630,9 @@ def main():
 
         plot_path = os.path.join(OUTPUT_DIR, f"{name}_prediction.png")
         plot_results(y_test, y_pred, plot_path)
+        
+        plot_error_distributions(y_test, y_pred, OUTPUT_DIR, name)
+
         results.append((name, rmse, r2))
         print(f"📈 {name} — RMSE: {rmse:.2f}, R²: {r2:.2f}")
 
