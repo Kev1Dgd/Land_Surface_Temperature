@@ -18,22 +18,27 @@ def load_and_merge_data(merged_folder, output_file="data/processed/cleaned_data.
             df = pd.read_csv(f)
             df = df.dropna()
 
-            # Apply valid filters only for available columns
-            df = df[
-                (df["LST_Kelvin"] >= 220) & (df["LST_Kelvin"] <= 330) &
-                (df["brightness_temp_mean"] >= 220) & (df["brightness_temp_mean"] <= 330)
-            ]
+            # Appliquer les filtres si les colonnes existent
+            filters = (df["LST_Kelvin"].between(220, 330))  # filtre LST
+
+            if "brightness_temp_19GHz" in df.columns:
+                filters &= df["brightness_temp_19GHz"].between(220, 330)
+
+            if "brightness_temp_37GHz" in df.columns:
+                filters &= df["brightness_temp_37GHz"].between(220, 330)
+
+            df = df[filters]
 
             if df.empty:
                 print(f"\n ⚠️ Empty file after filtering: {os.path.basename(f)}")
                 continue
 
-            # Extract date from file name
+            # Ajouter la date depuis le nom du fichier
             basename = os.path.basename(f)
-            date_str = os.path.splitext(basename)[0]  # Remove ".csv"
+            date_str = os.path.splitext(basename)[0]
             df["date"] = date_str
 
-            # Save to final output file (append mode)
+            # Sauvegarde
             df.to_csv(output_file, mode="a", header=not os.path.exists(output_file), index=False)
             print(f"\n ✅ File processed: {basename}")
 

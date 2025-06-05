@@ -4,6 +4,8 @@ import cartopy.feature as cfeature
 import os
 import seaborn as sns
 import pandas as pd
+import numpy as np
+
 
 
 def plot_results(y_test, y_pred, output_path):
@@ -201,3 +203,38 @@ def plot_mean_error_map(df_test_plot, df_mean_true, model_name, output_dir="outp
         cmap="Reds",
         create_date_folder=False
     )
+
+
+def plot_error_distributions(y_true, y_pred, output_path, name, bins=50):
+
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
+    error_dist_path = os.path.join(output_path, "errors_distribution")
+    os.makedirs(error_dist_path, exist_ok=True)                               
+    error_dist_file = os.path.join(error_dist_path, f"{name}_error_distributions.png")
+
+    abs_errors = np.abs(y_true - y_pred)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        rel_errors = np.where(y_true != 0, abs_errors / np.abs(y_true), np.nan)
+
+    # Filter relative errors > 4 (400%)
+    rel_errors_filtered = rel_errors[(~np.isnan(rel_errors)) & (rel_errors <= 4)]
+
+    plt.figure(figsize=(14,6))
+
+    plt.subplot(1, 2, 1)
+    sns.histplot(abs_errors, bins=bins, kde=True, color="skyblue")
+    plt.title("Distribution of Absolute Errors")
+    plt.xlabel("Absolute Error")
+    plt.ylabel("Frequency")
+
+    plt.subplot(1, 2, 2)
+    sns.histplot(rel_errors_filtered, bins=bins, kde=True, color="salmon")
+    plt.title("Distribution of Relative Errors (<= 200%)")
+    plt.xlabel("Relative Error (fraction)")
+    plt.ylabel("Frequency")
+
+    plt.tight_layout()
+    plt.savefig(error_dist_file)
+    plt.close()

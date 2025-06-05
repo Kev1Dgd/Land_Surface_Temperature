@@ -88,7 +88,8 @@ def merge_daily_datasets(modis_folder="data/processed/modis",
                 "lon",
                 "LST_Kelvin",
                 "LST_Celsius",
-                "brightness_temp_mean",
+                "brightness_temp_19GHz",
+                "brightness_temp_37GHz",
                 "land_cover_class"
             ]
             df = df[final_cols]
@@ -129,21 +130,13 @@ def concat_amsre_files(input_dir="data/processed/amsre", output_file="data/proce
             df_19 = pd.read_csv(file_19)
             df_37 = pd.read_csv(file_37)
 
-            # Rename columns to unify
-            df_19 = df_19.rename(columns={"latitude": "lat", "longitude": "lon"})
-            df_37 = df_37.rename(columns={"latitude": "lat", "longitude": "lon"})
+            df_19 = df_19.rename(columns={"latitude": "lat", "longitude": "lon", "brightness_temp_19v": "brightness_temp_19GHz"})
+            df_37 = df_37.rename(columns={"latitude": "lat", "longitude": "lon", "brightness_temp_37v": "brightness_temp_37GHz"})
 
-            # Merge on lat, lon
-            df = pd.merge(df_19, df_37, on=["lat", "lon"], suffixes=("_19", "_37"))
-
-            # Calculate mean brightness temp
-            df["brightness_temp_mean"] = (df["brightness_temp_19v"] + df["brightness_temp_37v"]) / 2
+            df = pd.merge(df_19, df_37, on=["lat", "lon"])
             df["date"] = date_folder
 
-            # Keep only necessary columns
-            df_final = df[["lat", "lon", "date", "brightness_temp_mean"]]
-
-            # Remove duplicates by averaging if any
+            df_final = df[["lat", "lon", "date", "brightness_temp_19GHz", "brightness_temp_37GHz"]]
             df_final = df_final.groupby(["lat", "lon", "date"], as_index=False).mean(numeric_only=True)
 
             all_dfs.append(df_final)
