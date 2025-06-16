@@ -53,3 +53,19 @@ def evaluate_model(model, X_test, y_test):
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))  
     r2 = r2_score(y_test, y_pred)
     return y_pred, rmse, r2
+
+def normalize_z_score(train_df, test_df, feature_cols):
+    means = train_df[feature_cols].mean()
+    stds = train_df[feature_cols].std()
+
+    train_norm = (train_df[feature_cols] - means) / stds
+    test_norm = (test_df[feature_cols] - means) / stds
+
+    return train_norm, test_norm, means, stds
+
+def load_land_cover_lookup(path="data/processed/land_cover/land_cover_lookup.csv", language="fr"):
+    df = pd.read_csv(path)
+    col_name = "igbp_class_fr" if language == "fr" else "igbp_class_en"
+    # Nettoyer les apostrophes simples qui pourraient être dans le CSV (ex: 'Forêt' -> Forêt)
+    df[col_name] = df[col_name].str.strip("'")
+    return dict(zip(df["id"], df[col_name]))

@@ -238,3 +238,50 @@ def plot_error_distributions(y_true, y_pred, output_path, name, bins=50):
     plt.tight_layout()
     plt.savefig(error_dist_file)
     plt.close()
+
+
+def plot_error_histogram_vs_modis(df_comparison, model_name, output_dir, data_type):
+    plt.figure(figsize=(8, 6))
+    plt.hist(df_comparison["diff_pred_vs_modis"].dropna(), bins=50, color="teal", edgecolor="black")
+    plt.axvline(0, color='red', linestyle='--')
+    plt.title(f"Écart prédiction vs MODIS — {model_name}")
+    plt.xlabel("Erreur (K)")
+    plt.ylabel("Nombre de points")
+    plt.tight_layout()
+    path = os.path.join(output_dir, f"{model_name}_{data_type}_hist_diff_vs_modis.png")
+    plt.savefig(path, dpi=300)
+    plt.close()
+
+
+def plot_error_by_landcover(df_comparison, model_name, output_dir, data_type):
+    grouped = df_comparison.groupby("land_cover_class")["diff_pred_vs_modis"].agg(["mean", "std"]).reset_index()
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(grouped["land_cover_class"], grouped["mean"], yerr=grouped["std"], capsize=5, color="slateblue")
+    plt.axhline(0, color='gray', linestyle='--')
+    plt.xlabel("Classe de sol")
+    plt.ylabel("Erreur moyenne (K)")
+    plt.title(f"Erreur moyenne par classe de sol — {model_name}")
+    plt.tight_layout()
+    path = os.path.join(output_dir, f"{model_name}_{data_type}_error_by_landcover.png")
+    plt.savefig(path, dpi=300)
+    plt.close()
+
+
+def plot_daily_error_trend(df, model_name, output_dir, data_type):
+    df = df.copy()
+    # Assure-toi que la colonne 'date' est en datetime
+    df["date"] = pd.to_datetime(df["date"])
+    daily_error = df.groupby("date")["diff_pred_vs_modis"].abs().mean()
+
+    plt.figure(figsize=(14,6))
+    daily_error.plot()
+    plt.title(f"Daily Mean Absolute Error Trend ({model_name} - {data_type})")
+    plt.xlabel("Date")
+    plt.ylabel("Mean Absolute Error")
+    plt.grid(True)
+    plt.tight_layout()
+
+    plt_path = os.path.join(output_dir, f"{model_name}_{data_type}_daily_error_trend.png")
+    plt.savefig(plt_path)
+    plt.close()

@@ -103,54 +103,98 @@ def merge_daily_datasets(modis_folder="data/processed/modis",
 
 
 
-def concat_amsre_files(input_dir="data/processed/amsre", output_file="data/processed/machine_learning/merged_amsre_data.csv"):
+def concat_amsre_files(
+    input_dir_vertical="data/processed/amsre/vertical_polarization",
+    input_dir_horizontal="data/processed/amsre/horizontal_polarization",
+    output_file="data/processed/machine_learning/merged_amsre_data.csv"
+):
+    import os
+    import re
+    import pandas as pd
+
     if os.path.exists(output_file):
         print(f"⚠️ Final file already exists: {output_file}")
         print("→ No recalculation performed.")
         return
 
-    date_folders = sorted([
-        d for d in os.listdir(input_dir)
-        if os.path.isdir(os.path.join(input_dir, d)) and re.match(r"\d{4}-\d{2}-\d{2}", d)
-    ])
+    dates_vert = {d for d in os.listdir(input_dir_vertical) if re.match(r"\d{4}-\d{2}-\d{2}", d)}
+    dates_horiz = {d for d in os.listdir(input_dir_horizontal) if re.match(r"\d{4}-\d{2}-\d{2}", d)}
+    date_folders = sorted(list(dates_vert & dates_horiz))
 
     all_dfs = []
 
     for date_folder in date_folders:
-        folder_path = os.path.join(input_dir, date_folder)
+        path_vert = os.path.join(input_dir_vertical, date_folder)
+        path_horiz = os.path.join(input_dir_horizontal, date_folder)
 
-        file_19 = os.path.join(folder_path, f"amsre_merged_19GHz_{date_folder}.csv")
-        file_37 = os.path.join(folder_path, f"amsre_merged_37GHz_{date_folder}.csv")
+        file_19v = os.path.join(path_vert, f"amsre_merged_19GHz_vertical_{date_folder}.csv")
+        file_37v = os.path.join(path_vert, f"amsre_merged_37GHz_vertical_{date_folder}.csv")
+        file_19h = os.path.join(path_horiz, f"amsre_merged_19GHz_horizontal_{date_folder}.csv")
+        file_37h = os.path.join(path_horiz, f"amsre_merged_37GHz_horizontal_{date_folder}.csv")
 
-        if not os.path.exists(file_19) or not os.path.exists(file_37):
-            print(f"⚠️ Missing merged files for date {date_folder}, skipped")
+        if not all(os.path.exists(f) for f in [file_19v, file_19h, file_37v, file_37h]):
+            print(f"⚠️ Missing files for {date_folder}, skipped.")
             continue
 
         try:
-            df_19 = pd.read_csv(file_19)
-            df_37 = pd.read_csv(file_37)
+            df_19v = pd.read_csv(file_19v)
+            df_37v = pd.read_csv(file_37v)
+            df_19h = pd.read_csv(file_19h)
+            df_37h = pd.read_csv(file_37h)
 
-            df_19 = df_19.rename(columns={"latitude": "lat", "longitude": "lon", "brightness_temp_19v": "brightness_temp_19GHz"})
-            df_37 = df_37.rename(columns={"latitude": "lat", "longitude": "lon", "brightness_temp_37v": "brightness_temp_37GHz"})
+            # Supprimer les colonnes inutiles pour éviter les collisions
+            for df in [df_19v, df_37v, df_19h, df_37h]:
+                for col in ["pass_type", "orbit", "time"]:  # adapte selon ton cas
+                    if col in df.columns:
+                        df.drop(columns=[col], inplace=True)
 
-            df = pd.merge(df_19, df_37, on=["lat", "lon"])
+            df_19v = df_19v.rename(columns={
+                "latitude": "lat",
+                "longitude": "lon",
+                "brightness_temp_19v": "brightness_temp_19GHz_v"
+            })
+            df_37v = df_37v.rename(columns={
+                "latitude": "lat",
+                "longitude": "lon",
+                "brightness_temp_37v": "brightness_temp_37GHz_v"
+            })
+            df_19h = df_19h.rename(columns={
+                "latitude": "lat",
+                "longitude": "lon",
+                "brightness_temp_19h": "brightness_temp_19GHz_h"
+            })
+            df_37h = df_37h.rename(columns={
+                "latitude": "lat",
+                "longitude": "lon",
+                "brightness_temp_37h": "brightness_temp_37GHz_h"
+            })
+
+            # Fusion sans duplication
+            df = df_19v.merge(df_37v, on=["lat", "lon"], how="outer") \
+                       .merge(df_19h, on=["lat", "lon"], how="outer") \
+                       .merge(df_37h, on=["lat", "lon"], how="outer")
+
             df["date"] = date_folder
 
-            df_final = df[["lat", "lon", "date", "brightness_temp_19GHz", "brightness_temp_37GHz"]]
-            df_final = df_final.groupby(["lat", "lon", "date"], as_index=False).mean(numeric_only=True)
+            df_final = df[[
+                "lat", "lon", "date",
+                "brightness_temp_19GHz_v", "brightness_temp_19GHz_h",
+                "brightness_temp_37GHz_v", "brightness_temp_37GHz_h"
+            ]]
 
+            df_final = df_final.groupby(["lat", "lon", "date"], as_index=False).mean(numeric_only=True)
             all_dfs.append(df_final)
 
-            print(f"✅ Successful merge for {date_folder} ({len(df_final)} rows)")
+            print(f"✅ Successfully merged for {date_folder} ({len(df_final)} rows)")
 
         except Exception as e:
-            print(f"❌ Error merging date {date_folder}: {e}")
+            print(f"❌ Error processing {date_folder}: {e}")
 
     if not all_dfs:
-        print("\n❌ No files could be merged.")
+        print("\n❌ No data merged.")
         return
 
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     df_all = pd.concat(all_dfs, ignore_index=True)
     df_all.to_csv(output_file, index=False)
-    print(f"\n✅ Final file saved: {output_file} ({len(df_all)} rows)")
+    print(f"\n✅ Final dataset saved: {output_file} ({len(df_all)} rows)")
