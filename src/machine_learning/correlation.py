@@ -28,7 +28,7 @@ def generate_heatmap_correlation(df, OUTPUT_DIR):
     print("✅ Correlation heatmap saved.")
 
     ## Targeted correlation
-    cols_of_interest = ["LST_Celsius", "brightness_temp_19GHz", "brightness_temp_37GHz", "land_cover_class"]
+    cols_of_interest = ["LST_Celsius", "brightness_temp_19v", "brightness_temp_37v", "brightness_temp_19h", "brightness_temp_37h", "land_cover_class"]
     corr = df[cols_of_interest].corr()
 
     # Mask for the upper triangle in the targeted heatmap

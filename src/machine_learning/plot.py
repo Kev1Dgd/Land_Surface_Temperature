@@ -8,12 +8,20 @@ import numpy as np
 
 
 
-def plot_results(y_test, y_pred, output_path):
+def plot_results(y_test, y_pred, output_path, data_type):
+
+    y_test = np.array(y_test)
+    y_pred = np.array(y_pred)
+    mask = y_pred > 230
+    y_test_filtered = y_test[mask]
+    y_pred_filtered = y_pred[mask]
+
+    # Plot
     plt.figure(figsize=(8, 6))
-    sns.scatterplot(x=y_test, y=y_pred, alpha=0.4)
-    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
-    plt.xlabel("Actual LST (°C)")
-    plt.ylabel("Predicted LST (°C)")
+    sns.scatterplot(x=y_test_filtered, y=y_pred_filtered, alpha=0.4)
+    plt.plot([y_test_filtered.min(), y_test_filtered.max()],[y_test_filtered.min(), y_test_filtered.max()], 'r--')
+    plt.xlabel("Actual LST (°K)")
+    plt.ylabel(f"Predicted LST (°K) with {data_type} data")
     plt.title("MODIS Surface Temperature Prediction")
     plt.grid(True)
     plt.tight_layout()
@@ -22,8 +30,9 @@ def plot_results(y_test, y_pred, output_path):
     plt.close()
     print(f"✅ Regression plot saved at: {output_path}")
 
-def plot_prediction_map(df, y_pred, model_name, date, output_dir="outputs/machine_learning/", 
-                        cmap="coolwarm", vmin=None, vmax=None, binning=False, create_date_folder=True):
+
+def plot_prediction_map(df, y_pred, model_name, date, output_dir, 
+                        cmap, data_type, vmin=None, vmax=None, binning=False, create_date_folder=True):
     
     print(f"🗺️ Generating map for model: {model_name}")
 
@@ -70,21 +79,22 @@ def plot_prediction_map(df, y_pred, model_name, date, output_dir="outputs/machin
     if "relative_error" in model_name_lower:
         colorbar_label = "Relative Error (%)"
     elif "absolute_error" in model_name_lower:
-        colorbar_label = "Absolute Error (°C)"
+        colorbar_label = "Absolute Error (°K)"
     else:
-        colorbar_label = "Predicted LST (°C)"
+        colorbar_label = "Predicted LST (°K)"
 
     plt.title(f"LST Prediction – {model_name} – {date}")
     plt.colorbar(scatter, label=colorbar_label, orientation="vertical", shrink=0.7, pad=0.05)
     plt.tight_layout()
 
-    file_path = os.path.join(map_output_dir, f"{model_name}_map_{date}.png")
+    file_path = os.path.join(map_output_dir, f"{model_name}_{data_type}_map_{date}.png")
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
     plt.savefig(file_path, dpi=600)
     plt.close()
     print(f"✅ Map saved at: {file_path}")
 
 
-def plot_error_map(df_day, model_name, date_str, output_base_dir="outputs/machine_learning"):
+def plot_error_map(df_day, model_name, date_str, output_base_dir, data_type):
     import numpy as np
 
     # Compute absolute and relative errors
@@ -103,7 +113,8 @@ def plot_error_map(df_day, model_name, date_str, output_base_dir="outputs/machin
         model_name=f"{model_name}_absolute_error",
         date=date_str,
         output_dir=abs_dir,
-        cmap="Reds"
+        cmap="Reds", 
+        data_type=data_type
     )
 
     # 2. Relative error map
@@ -115,12 +126,13 @@ def plot_error_map(df_day, model_name, date_str, output_base_dir="outputs/machin
         model_name=f"{model_name}_relative_error",
         date=date_str,
         output_dir=rel_dir,
-        cmap="Reds"
+        cmap="Reds", 
+        data_type=data_type
     )
 
 
 
-def plot_mean_map(df_test_plot, model_name, output_dir="outputs/machine_learning/mean_values_maps"):
+def plot_mean_map(df_test_plot, model_name, data_type, output_dir="outputs/machine_learning/mean_values_maps"):
     import numpy as np
 
     # Moyenne des prédictions par point géographique
@@ -128,7 +140,7 @@ def plot_mean_map(df_test_plot, model_name, output_dir="outputs/machine_learning
 
     # Création du dossier de sortie
     os.makedirs(output_dir, exist_ok=True)
-    mean_map_path = os.path.join(output_dir, f"{model_name}_mean_value.png")
+    mean_map_path = os.path.join(output_dir, f"{model_name}_{data_type}_mean_value.png")
 
     # === Plot Cartopy ===
     fig = plt.figure(figsize=(12, 8))
@@ -152,22 +164,21 @@ def plot_mean_map(df_test_plot, model_name, output_dir="outputs/machine_learning
     )
 
     plt.title(f"{model_name} - Mean Predictions (2005)")
-    plt.colorbar(scatter, label="Mean Predicted Temperature (°C)", orientation="vertical", shrink=0.7, pad=0.05)
+    plt.colorbar(scatter, label="Mean Predicted Temperature (°K)", orientation="vertical", shrink=0.7, pad=0.05)
     plt.tight_layout()
 
     plt.savefig(mean_map_path, dpi=600)
     plt.close()
-    print(f"\n✅ Mean temperature map saved at: {mean_map_path}")
+    print(f"\n✅ Mean temperature {data_type} map saved at: {mean_map_path}")
 
-def plot_mean_error_map(df_test_plot, df_mean_true, model_name, output_dir="outputs/machine_learning/mean_values_maps"):
-    import numpy as np
+def plot_mean_error_map(df_test_plot, df_mean_true, model_name, data_type, output_dir="outputs/machine_learning/mean_values_maps"):
 
     # Moyenne des prédictions
     df_mean_pred = df_test_plot.groupby(["lat", "lon"])["prediction"].mean().reset_index()
 
     # Moyenne des vraies valeurs – très important
-    df_mean_true = df_mean_true.groupby(["lat", "lon"])["LST_Celsius_mean"].mean().reset_index()
-    df_mean_true = df_mean_true.rename(columns={"LST_Celsius_mean": "true"})
+    df_mean_true = df_mean_true.groupby(["lat", "lon"])["LST_Kelvin_mean"].mean().reset_index()
+    df_mean_true = df_mean_true.rename(columns={"LST_Kelvin_mean": "true"})
 
     # Fusion des deux
     df_merged = pd.merge(df_mean_pred, df_mean_true, on=["lat", "lon"], how="inner")
@@ -182,14 +193,18 @@ def plot_mean_error_map(df_test_plot, df_mean_true, model_name, output_dir="outp
     # Filtrage des erreurs relatives extrêmes
     df_rel_filtered = df_merged[df_merged["rel_error"] <= 5.0]
 
+    output_path = os.path.join(output_dir, model_name)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
     # 1. Carte d’erreur absolue
     plot_prediction_map(
         df=df_merged,
         y_pred=df_merged["abs_error"].values,
         model_name=f"{model_name}_mean_absolute_error",
         date="2005",
-        output_dir=output_dir,
+        output_dir=output_path,
         cmap="Reds",
+        data_type=data_type, 
         create_date_folder=False
     )
 
@@ -199,89 +214,123 @@ def plot_mean_error_map(df_test_plot, df_mean_true, model_name, output_dir="outp
         y_pred=df_rel_filtered["rel_error"].values,
         model_name=f"{model_name}_mean_relative_error",
         date="2005",
-        output_dir=output_dir,
+        output_dir=output_path,
         cmap="Reds",
+        data_type=data_type, 
         create_date_folder=False
     )
 
 
-def plot_error_distributions(y_true, y_pred, output_path, name, bins=50):
-
+def plot_error_distributions(y_true, y_pred, output_dir, model_name, data_type, bins=50):
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
 
-    error_dist_path = os.path.join(output_path, "errors_distribution")
+    # Création du dossier de sortie
+    error_dist_path = os.path.join(output_dir, "errors_distribution")
     os.makedirs(error_dist_path, exist_ok=True)                               
-    error_dist_file = os.path.join(error_dist_path, f"{name}_error_distributions.png")
+    error_dist_file = os.path.join(error_dist_path, f"{model_name}_{data_type}_error_distributions.png")
 
+    # Calcul des erreurs absolues et relatives
     abs_errors = np.abs(y_true - y_pred)
     with np.errstate(divide='ignore', invalid='ignore'):
         rel_errors = np.where(y_true != 0, abs_errors / np.abs(y_true), np.nan)
 
-    # Filter relative errors > 4 (400%)
+    # Filtrage des erreurs relatives > 400%
     rel_errors_filtered = rel_errors[(~np.isnan(rel_errors)) & (rel_errors <= 4)]
 
-    plt.figure(figsize=(14,6))
+    # Statistiques
+    abs_median = np.median(abs_errors)
+    abs_std = np.std(abs_errors)
+    rel_median = np.median(rel_errors_filtered)
+    rel_std = np.std(rel_errors_filtered)
 
+    # Tracé
+    plt.figure(figsize=(14, 6))
+
+    # Erreurs absolues
     plt.subplot(1, 2, 1)
     sns.histplot(abs_errors, bins=bins, kde=True, color="skyblue")
-    plt.title("Distribution of Absolute Errors")
-    plt.xlabel("Absolute Error")
-    plt.ylabel("Frequency")
+    plt.axvline(abs_median, color='blue', linestyle='--', label=f"Médiane: {abs_median:.2f}")
+    plt.axvline(abs_median + abs_std, color='green', linestyle='--', label=f"Écart-type: {abs_std:.2f}")
+    plt.axvline(abs_median - abs_std, color='green', linestyle='--')
+    plt.xlim(0,30)
+    plt.title("Distribution des erreurs absolues")
+    plt.xlabel("Erreur absolue")
+    plt.ylabel("Fréquence")
+    plt.legend()
 
+    # Erreurs relatives
     plt.subplot(1, 2, 2)
     sns.histplot(rel_errors_filtered, bins=bins, kde=True, color="salmon")
-    plt.title("Distribution of Relative Errors (<= 200%)")
-    plt.xlabel("Relative Error (fraction)")
-    plt.ylabel("Frequency")
+    plt.axvline(rel_median, color='red', linestyle='--', label=f"Médiane: {rel_median:.2f}")
+    plt.axvline(rel_median + rel_std, color='purple', linestyle='--', label=f"Écart-type: {rel_std:.2f}")
+    plt.axvline(rel_median - rel_std, color='purple', linestyle='--')
+    plt.xlim(0,0.1)
+    plt.title("Distribution des erreurs relatives (≤ 400%)")
+    plt.xlabel("Erreur relative (fraction)")
+    plt.ylabel("Fréquence")
+    plt.legend()
 
     plt.tight_layout()
-    plt.savefig(error_dist_file)
+    plt.savefig(error_dist_file, dpi=300)
     plt.close()
+
+    print(f"✅ Error distribution saved at: {error_dist_file}")
 
 
 def plot_error_histogram_vs_modis(df_comparison, model_name, output_dir, data_type):
     plt.figure(figsize=(8, 6))
     plt.hist(df_comparison["diff_pred_vs_modis"].dropna(), bins=50, color="teal", edgecolor="black")
     plt.axvline(0, color='red', linestyle='--')
+    plt.xlim(-40,40)
     plt.title(f"Écart prédiction vs MODIS — {model_name}")
     plt.xlabel("Erreur (K)")
     plt.ylabel("Nombre de points")
     plt.tight_layout()
     path = os.path.join(output_dir, f"{model_name}_{data_type}_hist_diff_vs_modis.png")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     plt.savefig(path, dpi=300)
     plt.close()
 
 
-def plot_error_by_landcover(df_comparison, model_name, output_dir, data_type):
-    grouped = df_comparison.groupby("land_cover_class")["diff_pred_vs_modis"].agg(["mean", "std"]).reset_index()
+def plot_error_by_landcover(df, model_name, output_dir, data_type, land_cover_mapping):
+    df = df.copy()
+    df["land_cover_name"] = df["land_cover_class"].map(land_cover_mapping)
 
-    plt.figure(figsize=(10, 6))
-    plt.bar(grouped["land_cover_class"], grouped["mean"], yerr=grouped["std"], capsize=5, color="slateblue")
-    plt.axhline(0, color='gray', linestyle='--')
-    plt.xlabel("Classe de sol")
-    plt.ylabel("Erreur moyenne (K)")
-    plt.title(f"Erreur moyenne par classe de sol — {model_name}")
+    error_by_cover = (df["diff_pred_vs_modis"].abs()).groupby(df["land_cover_name"]).mean().sort_values()
+
+    plt.figure(figsize=(12,6))
+    error_by_cover.plot(kind='bar')
+    plt.title(f"Mean Absolute Error by Land Cover Class ({model_name} - {data_type})")
+    plt.xlabel("Land Cover Class")
+    plt.ylabel("Mean Absolute Error")
+    plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-    path = os.path.join(output_dir, f"{model_name}_{data_type}_error_by_landcover.png")
-    plt.savefig(path, dpi=300)
+    plt_path = os.path.join(output_dir, f"{model_name}_{data_type}_error_by_landcover.png")
+    os.makedirs(os.path.dirname(plt_path), exist_ok=True)
+    plt.savefig(plt_path)
     plt.close()
 
 
 def plot_daily_error_trend(df, model_name, output_dir, data_type):
-    df = df.copy()
-    # Assure-toi que la colonne 'date' est en datetime
-    df["date"] = pd.to_datetime(df["date"])
-    daily_error = df.groupby("date")["diff_pred_vs_modis"].abs().mean()
+    df['date'] = pd.to_datetime(df['date'])
+    df['year_month'] = df['date'].dt.to_period('M')
+    
+    for period, group in df.groupby('year_month'):
+        daily_error = group['diff_pred_vs_modis'].abs().groupby(group['date']).mean()
 
-    plt.figure(figsize=(14,6))
-    daily_error.plot()
-    plt.title(f"Daily Mean Absolute Error Trend ({model_name} - {data_type})")
-    plt.xlabel("Date")
-    plt.ylabel("Mean Absolute Error")
-    plt.grid(True)
-    plt.tight_layout()
+        plt.figure(figsize=(12, 6))
+        plt.plot(daily_error.index, daily_error.values, marker='o')
+        plt.title(f"Daily Mean Absolute Error vs MODIS - {model_name} - {period} ({data_type})")
+        plt.xlabel("Date")
+        plt.ylabel("Mean Absolute Error")
+        plt.grid(True)
+        plt.xticks(rotation=45)
 
-    plt_path = os.path.join(output_dir, f"{model_name}_{data_type}_daily_error_trend.png")
-    plt.savefig(plt_path)
-    plt.close()
+        filename = f"{model_name}_{data_type}_daily_error_trend_{period}.png"
+        os.makedirs(output_dir, period, exist_ok=True)
+        filepath = os.path.join(output_dir, period, filename)
+
+        plt.tight_layout()
+        plt.savefig(filepath, dpi=300)
+        plt.close()

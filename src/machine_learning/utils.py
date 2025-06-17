@@ -61,7 +61,7 @@ def normalize_z_score(train_df, test_df, feature_cols):
     train_norm = (train_df[feature_cols] - means) / stds
     test_norm = (test_df[feature_cols] - means) / stds
 
-    return train_norm, test_norm, means, stds
+    return train_norm, test_norm
 
 def load_land_cover_lookup(path="data/processed/land_cover/land_cover_lookup.csv", language="fr"):
     df = pd.read_csv(path)

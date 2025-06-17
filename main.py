@@ -26,8 +26,8 @@ from src.land_cover.process import convert_land_cover_nc_to_csv
 from src.land_cover.plot import plot_land_cover_map
 
 from src.comparisons.maps import plot_difference_map_explicit
-from src.comparisons.fluxnet_vs_satellite import load_european_fluxnet_data, match_fluxnet_with_amsre, batch_plot_all_stations
-from src.comparisons.utils import clean_temp_fluxnet
+from src.comparisons.utils import process_and_save_daily_means, load_amsre_subsets_from_saved
+from src.comparisons.plot import plot_tb_comparison
 
 from src.machine_learning.model.regression import train_regression
 from src.machine_learning.model.knn import train_knn
@@ -48,7 +48,7 @@ def main():
 
 
     new_graph = True                    # If the maps are to be generated again if they already exist
-    normalized_input = True            # If you want to normalize input data
+    normalized_input = False            # If you want to normalize input data
     start_date = datetime(2005, 1, 1)
     end_date = datetime(2005, 12, 31)
     dates = [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((end_date - start_date).days + 1)]
@@ -907,7 +907,7 @@ def main():
     ### MACHINE LEARNING ###
     
     
-    
+    '''
     # === FOLDER DEFINITIONS ===
     MERGED_FOLDER = "data/processed/machine_learning/dates"
     CLEANED_FILE = "data/processed/machine_learning/cleaned_data.csv"
@@ -934,8 +934,8 @@ def main():
     df = df[df["land_cover_class"] != 16]
     removed = initial_count - len(df)
     print(f"🧭 Suppressed water pixels : {removed} over {initial_count} ({removed/initial_count:.1%})")
-        
-    
+
+
     generate_heatmap_correlation(df, OUTPUT_DIR if normalized_input else OUTPUT_DIR_UNNORMALIZED)
     
     # 2. Train/Test split
@@ -1061,40 +1061,36 @@ def main():
     print(f"{'Model':<20} {'RMSE':<10} {'R²':<10}")
     for name, rmse, r2 in results:
         print(f"{name:<20} {rmse:<10.2f} {r2:<10.2f}")
-    
-
-
-    ### Comparison fluxnet vs satellite ###
-
-
-    '''
-    # === FOLDER DEFINITIONS ===
-
-    station_coords_path = "data/processed/fluxnet/fluxnet_station_coordinates.csv"
-    fluxnet_csv_path = "data/raw/fluxnet/FluxNET_AMSRE.csv"
-    amsre_csv_path = "data/processed/machine_learning/merged_amsre_data.csv"
-    output_dir = "outputs/fluxnet_vs_amsre"
-
-    
-    # === data processing === 
-
-    df_fluxnet, european_stations = load_european_fluxnet_data(fluxnet_csv_path=fluxnet_csv_path, station_coords_path=station_coords_path)
-
-    # Pair FLUXNET with AMSR-E
-    df_matched = match_fluxnet_with_amsre(df_fluxnet=df_fluxnet, european_stations=european_stations, station_coords_path=station_coords_path, amsre_data_path=amsre_csv_path)
-
-    # Cleaning the temp_fluxnet column before the plots
-    df_matched['temp_fluxnet'] = df_matched['temp_fluxnet'].apply(clean_temp_fluxnet)
-
-    tb_columns = ["brightness_temp_19v", "brightness_temp_19h", "brightness_temp_37v", "brightness_temp_37h"]
-
-    
-    # === plots ===
-
-    batch_plot_all_stations(df_matched, european_stations, tb_columns, output_dir=output_dir)
     '''
 
 
+    ### Comparison orbits and polarizations ###
+
+
+    '''
+    output_graph_37 = "outputs/comparisons/tb_comparison_37GHz.png"
+    output_graph_19 = "outputs/comparisons/tb_comparison_19GHz.png"
+
+
+    print("\n⏳ Processing of raw AMSRE files and calculation/saving of daily averages...")
+    process_and_save_daily_means(base_dir="data/processed/amsre", output_dir="data/processed/comparisons", freqs=("19", "37"))
+
+    print("\n⏳ Loading daily averages from saved files...")
+    daily_means_named = load_amsre_subsets_from_saved(output_dir="data/processed/comparisons")
+    print(f"✅ Average daily loads : {len(daily_means_named)}")
+    
+    print("\n📊 TB comparison display for 19 GHz...")
+    if new_graph or not os.path.exists(output_graph_19):
+        plot_tb_comparison(daily_means=daily_means_named, freq="19GHz")
+    else : 
+        print(f"⏭️ File already exists, skip : {output_graph_19}")
+
+    print("\n📊 TB comparison display for 37 GHz...")
+    if new_graph or not os.path.exists(output_graph_37):
+        plot_tb_comparison(daily_means=daily_means_named, freq="37GHz")
+    else : 
+        print(f"⏭️ File already exists, skip: {output_graph_37}")
+    '''
 
 
 if __name__ == "__main__":
