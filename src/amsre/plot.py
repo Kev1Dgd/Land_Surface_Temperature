@@ -30,7 +30,7 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
     os.makedirs(date_output_dir, exist_ok=True)
 
     fig = plt.figure(figsize=(12, 8))
-    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax = plt.axes(projection=n .PlateCarree())
     ax.add_feature(cfeature.COASTLINE)
     ax.add_feature(cfeature.BORDERS, linestyle=':')
     vmin = 130
@@ -66,7 +66,7 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
     print(f"✅ Map saved in {output_file}")
 
 
-def plot_temp_estimated_map(df, date, pass_type, freq_label, a, b, cmap="viridis", output_dir="outputs/amsre/dates"):
+def plot_temp_estimated_map(df, date, pass_type, freq_label, a, b, polar, cmap="viridis", output_dir="outputs/amsre"):
     print(f"🗺️ Génération de la carte de température estimée pour pass_type = {pass_type}...")
 
     # 🔍 Filtrage selon le type de passage
@@ -74,14 +74,14 @@ def plot_temp_estimated_map(df, date, pass_type, freq_label, a, b, cmap="viridis
         df = df[df["pass_type"] == pass_type]
 
     # 🎯 Estimation de la température (sans regroupement en grille)
-    brightness_column = f"brightness_temp_{freq_label[:2]}v"
+    brightness_column = f"brightness_temp_{freq_label[:2]}{polar[0]}"
     df = df.assign(
         estimated_temp=a * df[brightness_column] + b
     )
 
     # 💾 Chemin du CSV
     csv_dir = os.path.join("data/processed/amsre", date)
-    output_csv_path = os.path.join(csv_dir, f"amsre_calculated_temp_reg_{date}_{freq_label}.csv")
+    output_csv_path = os.path.join(csv_dir, f"amsre_calculated_temp_reg_{date}_{freq_label}_{polar}.csv")
 
     # ✅ Sauvegarde CSV seulement s’il n’existe pas déjà
     if pass_type == "combined":
@@ -106,10 +106,10 @@ def plot_temp_estimated_map(df, date, pass_type, freq_label, a, b, cmap="viridis
         transform=ccrs.PlateCarree()
     )
 
-    plt.colorbar(sc, ax=ax, orientation='vertical', label='Température estimée (°K)')
-    ax.set_title(f"Température estimée ({freq_label}) - {pass_type} - {date}")
+    plt.colorbar(sc, ax=ax, orientation='vertical', label='Estimated temperature (°K)')
+    ax.set_title(f"Estimated temperature ({freq_label}) ({polar}) - {pass_type} - {date}")
 
-    output_path = os.path.join(output_dir, date, "estimated_temperature", freq_label, f"temp_by_reg_{freq_label}_map_{date}_{pass_type}.png")
+    output_path = os.path.join(output_dir, f"{polar}_polarization", "dates", date, "estimated_temperature", freq_label, f"temp_by_reg_{freq_label}_map_{date}_{pass_type}_{polar}.png")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path, dpi=500)
     plt.close()
@@ -183,7 +183,7 @@ def plot_temp_mean_amsre_Kelvin(
     ax.add_feature(cfeature.BORDERS, linestyle=':')
     ax.gridlines(draw_labels=True, x_inline=False, y_inline=False)
 
-    plt.colorbar(mesh, label=f"Température AMSRE {freq_label}GHz (K)", orientation="vertical", shrink=0.7, pad=0.05)
+    plt.colorbar(mesh, label=f"AMSRE Temperature {freq_label}GHz (K)", orientation="vertical", shrink=0.7, pad=0.05)
     plt.title(f"Mean temperature AMSRE {freq_label}GHz - 2005 (K)")
     plt.tight_layout()
 

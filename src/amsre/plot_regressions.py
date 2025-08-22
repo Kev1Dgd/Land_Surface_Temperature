@@ -6,14 +6,14 @@ import os
 from datetime import datetime  
 
 
-def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label, output_dir="outputs/amsre/dates"):
+def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label, polarization, output_dir="outputs/amsre"):
     # Load data
     df = pd.read_csv(csv_path)
 
     # Data cleaning: removal of missing and inconsistent values
-    df = df.dropna(subset=[f"brightness_temp_{freq_label[0:2]}v", "temperature"])
+    df = df.dropna(subset=[f"brightness_temp_{freq_label[0:2]}{polarization[0]}", "temperature"])
     df = df[(df["temperature"] > 180) & (df["temperature"] < 330)]
-    df = df[(df[f"brightness_temp_{freq_label[0:2]}v"] > 180) & (df[f"brightness_temp_{freq_label[0:2]}v"] < 330)]
+    df = df[(df[f"brightness_temp_{freq_label[0:2]}{polarization[0]}"] > 180) & (df[f"brightness_temp_{freq_label[0:2]}{polarization[0]}"] < 330)]
 
     # Check if the DataFrame is empty or too small
     if df.shape[0] < 2:
@@ -21,7 +21,7 @@ def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label
         return
 
     # Variables for regression
-    X = df[f"brightness_temp_{freq_label[0:2]}v"].values.reshape(-1, 1)
+    X = df[f"brightness_temp_{freq_label[0:2]}{polarization[0]}"].values.reshape(-1, 1)
     y = df["temperature"].values.reshape(-1, 1)
 
     # Linear regression model
@@ -32,13 +32,13 @@ def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label
     # Creating the plot
     plt.figure(figsize=(8, 6))
     plt.scatter(X, y, color="blue", label="Stations FLUXNET")
-    plt.plot(X, y_pred, color="red", linewidth=2, label="Régression linéaire")
+    plt.plot(X, y_pred, color="red", linewidth=2, label="Linear Regression")
 
     # Regression coefficients
     a = model.coef_[0][0]
     b = model.intercept_[0]
     r2 = model.score(X, y)
-    plt.title(f"FLUXNET temperature  vs AMSR-E TB  ({freq_label})\nRégression : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
+    plt.title(f"FLUXNET temperature  vs AMSR-E TB  ({freq_label})\nRegression : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
 
     plt.xlabel("Brightness temperature AMSR-E (K)")
     plt.ylabel("FLUXNET temperature (K)")
@@ -47,7 +47,7 @@ def plot_brightness_vs_temperature_and_regression(csv_path, date_str, freq_label
     plt.tight_layout()
 
     # Create a folder for this date if necessary
-    date_output_dir = os.path.join(output_dir, date_str)
+    date_output_dir = os.path.join(output_dir, f"{polarization}_polarization", "dates", date_str)
     os.makedirs(date_output_dir, exist_ok=True)
 
     # Save the regression image
@@ -69,7 +69,7 @@ def get_season_from_month(month):
         return "Autumn"
 
 
-def plot_global_tb_vs_temp(matched_folder, freq_label, output_path, new_graph):
+def plot_global_tb_vs_temp(matched_folder, freq_label, output_path, new_graph, polar):
     all_data = []
     
     for filename in os.listdir(matched_folder):
@@ -84,9 +84,9 @@ def plot_global_tb_vs_temp(matched_folder, freq_label, output_path, new_graph):
                 continue
 
             df = pd.read_csv(os.path.join(matched_folder, filename))
-            df = df.dropna(subset=[f"brightness_temp_{freq_label[0:2]}v", "temperature"])
+            df = df.dropna(subset=[f"brightness_temp_{freq_label[0:2]}{polar[0]}", "temperature"])
             df = df[(df["temperature"] > 180) & (df["temperature"] < 330)]
-            df = df[(df[f"brightness_temp_{freq_label[0:2]}v"] >= 220) & (df[f"brightness_temp_{freq_label[0:2]}v"] < 330)]
+            df = df[(df[f"brightness_temp_{freq_label[0:2]}{polar[0]}"] >= 220) & (df[f"brightness_temp_{freq_label[0:2]}{polar[0]}"] < 330)]
             df["season"] = season  # Add season as column
 
             all_data.append(df)
@@ -98,7 +98,7 @@ def plot_global_tb_vs_temp(matched_folder, freq_label, output_path, new_graph):
     df_all = pd.concat(all_data, ignore_index=True)
 
     # Overall regression
-    X = df_all[f"brightness_temp_{freq_label[0:2]}v"].values.reshape(-1, 1)
+    X = df_all[f"brightness_temp_{freq_label[0:2]}{polar[0]}"].values.reshape(-1, 1)
     y = df_all["temperature"].values.reshape(-1, 1)
     model = LinearRegression()
     model.fit(X, y)
@@ -122,7 +122,7 @@ def plot_global_tb_vs_temp(matched_folder, freq_label, output_path, new_graph):
         plt.figure(figsize=(10, 6))
         for season, group in df_all.groupby("season"):
             plt.scatter(
-                group[f"brightness_temp_{freq_label[0:2]}v"],
+                group[f"brightness_temp_{freq_label[0:2]}{polar[0]}"],
                 group["temperature"],
                 s=10,
                 alpha=0.4,
@@ -133,7 +133,7 @@ def plot_global_tb_vs_temp(matched_folder, freq_label, output_path, new_graph):
         plt.plot(X, y_pred, color='red', linewidth=2, label="Linear regression")
         plt.xlabel("AMSR-E brightness temperature (K)")
         plt.ylabel("FLUXNET temperature (K)")
-        plt.title(f"Global 2005 regression for the {freq_label} frequency : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
+        plt.title(f"Global 2005 regression for the {freq_label} frequency, {polar} polarization : T = {a:.2f} × TB + {b:.2f} (R² = {r2:.2f})")
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
@@ -186,10 +186,10 @@ def plot_stationwise_and_global_regressions_2005(csv_path, freq_label, output_di
         # Affichage
         plt.figure(figsize=(8, 6))
         plt.scatter(df_station["TIMESTAMP_START"], df_station["temperature"], label=station, alpha=0.5)
-        plt.plot(df_station["TIMESTAMP_START"], y_pred, color="red", label="Régression")
+        plt.plot(df_station["TIMESTAMP_START"], y_pred, color="red", label="Regression")
         plt.title(f"FLUXNET Temperature – {station} (2005)")
         plt.xlabel("Date")
-        plt.ylabel("Température (K)")
+        plt.ylabel("Temperature (K)")
         plt.legend()
         plt.grid(True)
 
@@ -222,16 +222,16 @@ def plot_stationwise_and_global_regressions_2005(csv_path, freq_label, output_di
         all_dates = [datetime.fromordinal(int(d[0])) for d in X_all]
 
         plt.figure(figsize=(10, 6))
-        plt.scatter(all_dates, y_all, alpha=0.3, label="Toutes les stations")
-        plt.plot(x_dates, y_range, color="black", linewidth=2, label="Régression globale")
+        plt.scatter(all_dates, y_all, alpha=0.3, label="All stations")
+        plt.plot(x_dates, y_range, color="black", linewidth=2, label="global regression")
 
-        plt.title(f"Régression FLUXNET globale (2005)\nT = {a:.2f} × date + {b:.2f} (R² = {r2:.2f})")
+        plt.title(f"Global Fluxnet regression (2005)\nT = {a:.2f} × date + {b:.2f} (R² = {r2:.2f})")
         plt.xlabel("Date")
-        plt.ylabel("Température (K)")
+        plt.ylabel("Temperature (K)")
         plt.legend()
         plt.grid(True)
 
-        global_output = os.path.join(output_dir, f"regression_globale_2005_{freq_label}.png")
+        global_output = os.path.join(output_dir, f"global_regression_2005_{freq_label}.png")
         plt.tight_layout()
         plt.savefig(global_output, dpi=300)
         plt.close()
@@ -300,9 +300,9 @@ def plot_station_regressions(df_matched1, df_matched2, output_dir, new_graph):
         # Libération mémoire
         del df1, df2, x1, y1, x2, y2, valid1, valid2
 
-def plot_regression_metrics_evolution(regression_csv_path, freq_label, output_path):
+def plot_regression_metrics_evolution(regressions_csv_path, freq_label, output_path):
     
-    df = pd.read_csv(regression_csv_path)
+    df = pd.read_csv(regressions_csv_path)
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
 
     plt.figure(figsize=(12, 6))

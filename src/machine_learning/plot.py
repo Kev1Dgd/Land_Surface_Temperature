@@ -95,8 +95,6 @@ def plot_prediction_map(df, y_pred, model_name, date, output_dir,
 
 
 def plot_error_map(df_day, model_name, date_str, output_base_dir, data_type):
-    import numpy as np
-
     # Compute absolute and relative errors
     df_day["abs_error"] = np.abs(df_day["prediction"] - df_day["true"])
     df_day["rel_error"] = 100 * df_day["abs_error"] / (np.abs(df_day["true"]) + 1e-6)
@@ -131,10 +129,7 @@ def plot_error_map(df_day, model_name, date_str, output_base_dir, data_type):
     )
 
 
-
 def plot_mean_map(df_test_plot, model_name, data_type, output_dir="outputs/machine_learning/mean_values_maps"):
-    import numpy as np
-
     # Moyenne des prédictions par point géographique
     df_mean_pred = df_test_plot.groupby(["lat", "lon"])["prediction"].mean().reset_index()
 
@@ -171,6 +166,7 @@ def plot_mean_map(df_test_plot, model_name, data_type, output_dir="outputs/machi
     plt.close()
     print(f"\n✅ Mean temperature {data_type} map saved at: {mean_map_path}")
 
+
 def plot_mean_error_map(df_test_plot, df_mean_true, model_name, data_type, output_dir="outputs/machine_learning/mean_values_maps"):
 
     # Moyenne des prédictions
@@ -188,7 +184,7 @@ def plot_mean_error_map(df_test_plot, df_mean_true, model_name, data_type, outpu
 
     # Calcul des erreurs
     df_merged["abs_error"] = np.abs(df_merged["prediction"] - df_merged["true"])
-    df_merged["rel_error"] = df_merged["abs_error"] / (np.abs(df_merged["true"]) + 1e-6)
+    df_merged["rel_error"] = 100* df_merged["abs_error"] / (np.abs(df_merged["true"]) + 1e-6)
 
     # Filtrage des erreurs relatives extrêmes
     df_rel_filtered = df_merged[df_merged["rel_error"] <= 5.0]
@@ -227,7 +223,7 @@ def plot_error_distributions(y_true, y_pred, output_dir, model_name, data_type, 
 
     # Création du dossier de sortie
     error_dist_path = os.path.join(output_dir, "errors_distribution")
-    os.makedirs(error_dist_path, exist_ok=True)                               
+    os.makedirs(error_dist_path, exist_ok=True)
     error_dist_file = os.path.join(error_dist_path, f"{model_name}_{data_type}_error_distributions.png")
 
     # Calcul des erreurs absolues et relatives
@@ -236,7 +232,7 @@ def plot_error_distributions(y_true, y_pred, output_dir, model_name, data_type, 
         rel_errors = np.where(y_true != 0, abs_errors / np.abs(y_true), np.nan)
 
     # Filtrage des erreurs relatives > 400%
-    rel_errors_filtered = rel_errors[(~np.isnan(rel_errors)) & (rel_errors <= 4)]
+    rel_errors_filtered = 100*rel_errors[(~np.isnan(rel_errors)) & (rel_errors <= 4)]
 
     # Statistiques
     abs_median = np.median(abs_errors)
@@ -244,31 +240,39 @@ def plot_error_distributions(y_true, y_pred, output_dir, model_name, data_type, 
     rel_median = np.median(rel_errors_filtered)
     rel_std = np.std(rel_errors_filtered)
 
+    # Limites dynamiques pour les xlim
+    abs_max = np.percentile(abs_errors, 99)  # Évite les outliers extrêmes
+    rel_max = np.percentile(rel_errors_filtered, 99)
+
+    # Marge pour lisibilité
+    abs_xlim = (0, abs_max * 1.1)
+    rel_xlim = (0, rel_max * 1.1)
+
     # Tracé
     plt.figure(figsize=(14, 6))
 
     # Erreurs absolues
     plt.subplot(1, 2, 1)
     sns.histplot(abs_errors, bins=bins, kde=True, color="skyblue")
-    plt.axvline(abs_median, color='blue', linestyle='--', label=f"Médiane: {abs_median:.2f}")
-    plt.axvline(abs_median + abs_std, color='green', linestyle='--', label=f"Écart-type: {abs_std:.2f}")
+    plt.axvline(abs_median, color='blue', linestyle='--', label=f"Median : {abs_median:.2f}")
+    plt.axvline(abs_median + abs_std, color='green', linestyle='--', label=f"Std : {abs_std:.2f}")
     plt.axvline(abs_median - abs_std, color='green', linestyle='--')
-    plt.xlim(0,30)
-    plt.title("Distribution des erreurs absolues")
-    plt.xlabel("Erreur absolue")
-    plt.ylabel("Fréquence")
+    plt.xlim(abs_xlim)
+    plt.title("Absolute errors distribution")
+    plt.xlabel("Absolute error")
+    plt.ylabel("Frequency")
     plt.legend()
 
     # Erreurs relatives
     plt.subplot(1, 2, 2)
     sns.histplot(rel_errors_filtered, bins=bins, kde=True, color="salmon")
-    plt.axvline(rel_median, color='red', linestyle='--', label=f"Médiane: {rel_median:.2f}")
-    plt.axvline(rel_median + rel_std, color='purple', linestyle='--', label=f"Écart-type: {rel_std:.2f}")
+    plt.axvline(rel_median, color='red', linestyle='--', label=f"Median : {rel_median:.2f}")
+    plt.axvline(rel_median + rel_std, color='purple', linestyle='--', label=f"Std : {rel_std:.2f}")
     plt.axvline(rel_median - rel_std, color='purple', linestyle='--')
-    plt.xlim(0,0.1)
-    plt.title("Distribution des erreurs relatives (≤ 400%)")
-    plt.xlabel("Erreur relative (fraction)")
-    plt.ylabel("Fréquence")
+    plt.xlim(rel_xlim)
+    plt.title("Relative errors distribution (≤ 400%)")
+    plt.xlabel("Relative errors (%)")
+    plt.ylabel("Frequency")
     plt.legend()
 
     plt.tight_layout()
@@ -283,9 +287,9 @@ def plot_error_histogram_vs_modis(df_comparison, model_name, output_dir, data_ty
     plt.hist(df_comparison["diff_pred_vs_modis"].dropna(), bins=50, color="teal", edgecolor="black")
     plt.axvline(0, color='red', linestyle='--')
     plt.xlim(-40,40)
-    plt.title(f"Écart prédiction vs MODIS — {model_name}")
-    plt.xlabel("Erreur (K)")
-    plt.ylabel("Nombre de points")
+    plt.title(f"Difference between prediction and MODIS — {model_name}")
+    plt.xlabel("Error (K)")
+    plt.ylabel("Number of points")
     plt.tight_layout()
     path = os.path.join(output_dir, f"{model_name}_{data_type}_hist_diff_vs_modis.png")
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -328,9 +332,10 @@ def plot_daily_error_trend(df, model_name, output_dir, data_type):
         plt.xticks(rotation=45)
 
         filename = f"{model_name}_{data_type}_daily_error_trend_{period}.png"
-        os.makedirs(output_dir, period, exist_ok=True)
-        filepath = os.path.join(output_dir, period, filename)
+        os.makedirs(os.path.join(output_dir, str(period)), exist_ok=True)
+        filepath = os.path.join(output_dir, str(period), filename)
 
         plt.tight_layout()
         plt.savefig(filepath, dpi=300)
         plt.close()
+

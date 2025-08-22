@@ -7,7 +7,7 @@ def authenticate():
     return login()
 
 
-def download_amsre_ae_l2a(date="2005-07-01", output_dir="data/raw/amsre"):
+def download_amsre_ae_l2a(date, output_dir="data/raw/amsre"):
     print(f"\n🔍 Search AMSR-E AE_L2A data for {date}")
 
     results = search_data(

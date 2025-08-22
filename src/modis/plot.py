@@ -5,7 +5,6 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import numpy as np
 from tqdm import tqdm
-from glob import glob
 
 
 def plot_modis_lst_map(df, date, cmap="coolwarm", output_dir="outputs/modis/daily_maps"):

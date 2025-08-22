@@ -4,9 +4,9 @@ from glob import glob
 from collections import defaultdict
 
 
-def load_amsre_subsets_from_saved(output_dir):
+def load_amsre_subsets_from_saved(input_dir):
     subsets = {}
-    for filepath in glob(os.path.join(output_dir, "*.csv")):
+    for filepath in glob(os.path.join(input_dir, "*.csv")):
         filename = os.path.basename(filepath)
         parts = filename.replace(".csv", "").split("_")
         if len(parts) != 4:

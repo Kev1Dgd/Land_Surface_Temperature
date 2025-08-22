@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import glob
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from src.modis.plot import plot_modis_lst_map
 

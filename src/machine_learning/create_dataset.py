@@ -88,8 +88,10 @@ def merge_daily_datasets(modis_folder="data/processed/modis",
                 "lon",
                 "LST_Kelvin",
                 "LST_Celsius",
-                "brightness_temp_19GHz",
-                "brightness_temp_37GHz",
+                "brightness_temp_19v",
+                "brightness_temp_37v",
+                "brightness_temp_19h",
+                "brightness_temp_37h",
                 "land_cover_class"
             ]
             df = df[final_cols]
@@ -108,9 +110,7 @@ def concat_amsre_files(
     input_dir_horizontal="data/processed/amsre/horizontal_polarization",
     output_file="data/processed/machine_learning/merged_amsre_data.csv"
 ):
-    import os
-    import re
-    import pandas as pd
+
 
     if os.path.exists(output_file):
         print(f"⚠️ Final file already exists: {output_file}")

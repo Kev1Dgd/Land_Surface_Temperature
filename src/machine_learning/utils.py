@@ -58,14 +58,17 @@ def normalize_z_score(train_df, test_df, feature_cols):
     means = train_df[feature_cols].mean()
     stds = train_df[feature_cols].std()
 
-    train_norm = (train_df[feature_cols] - means) / stds
-    test_norm = (test_df[feature_cols] - means) / stds
+    train_norm = train_df.copy()
+    test_norm = test_df.copy()
 
-    return train_norm, test_norm
+    train_norm[feature_cols] = (train_df[feature_cols] - means) / stds
+    test_norm[feature_cols] = (test_df[feature_cols] - means) / stds
 
-def load_land_cover_lookup(path="data/processed/land_cover/land_cover_lookup.csv", language="fr"):
+    return train_norm[feature_cols], test_norm[feature_cols]
+
+def load_land_cover_lookup(langage, path="data/processed/land_cover/land_cover_lookup.csv"):
     df = pd.read_csv(path)
-    col_name = "igbp_class_fr" if language == "fr" else "igbp_class_en"
+    col_name = f"igbp_class_{langage}"
     # Nettoyer les apostrophes simples qui pourraient être dans le CSV (ex: 'Forêt' -> Forêt)
     df[col_name] = df[col_name].str.strip("'")
     return dict(zip(df["id"], df[col_name]))

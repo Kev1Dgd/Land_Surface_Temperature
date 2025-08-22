@@ -12,6 +12,7 @@ def fit_daily_regressions(folder_path, output_csv_path, freq_label):
         df_existing = pd.read_csv(output_csv_path)
         existing_dates = set(df_existing["date"].astype(str))
         print(f"🔁 Existing regression file found. {len(existing_dates)} dates already processed.")
+        return 
     else:
         df_existing = pd.DataFrame()
         existing_dates = set()
@@ -77,3 +78,4 @@ def fit_daily_regressions(folder_path, output_csv_path, freq_label):
 
     df_results.to_csv(output_csv_path, index=False)
     print(f"\n✅ Daily regressions saved in : {output_csv_path}")
+    return

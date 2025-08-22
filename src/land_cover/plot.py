@@ -7,11 +7,11 @@ import numpy as np
 import matplotlib.patches as mpatches
 import os
 
-def plot_land_cover_map(nc_path, output_img_path):
+def plot_land_cover_map(land_cover_path, output_img_path):
     lon_min, lat_min, lon_max, lat_max = -12.984, 35.290, 38.018, 64.09
 
     # Data loading
-    ds = xr.open_dataset(nc_path)
+    ds = xr.open_dataset(land_cover_path)
     var_name = list(ds.data_vars)[0]
     land_cover = ds[var_name]
 

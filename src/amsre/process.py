@@ -13,7 +13,7 @@ def extract_bt(file_path, frequency):
     try:
         if not file_path.endswith(".hdf"):
             debug_print(f"Ignored non-HDF file: {file_path}")
-            return None, None, None, None
+            return None, None, None
 
         ds = Dataset(file_path, mode='r')
 
@@ -44,11 +44,12 @@ def extract_bt(file_path, frequency):
         lat = np.round(lat, 2)
         lon = np.round(lon, 2)
 
-        return lat, lon, tb_corrected, None
+        return lat, lon, tb_corrected
 
     except Exception as e:
         debug_print(f"Error : {e}")
-        return None, None, None, None
+        return None, None, None
+    
 
 def combine_amsre_files(files, date, frequency, output_dir="data/processed/amsre"):
     lon_min, lat_min, lon_max, lat_max = -12.984, 35.290, 38.018, 64.090
@@ -69,7 +70,7 @@ def combine_amsre_files(files, date, frequency, output_dir="data/processed/amsre
     all_data_descending = []
 
     for file_path in files:
-        lat, lon, bt, hour = extract_bt(file_path, frequency)
+        lat, lon, bt = extract_bt(file_path, frequency)
 
         if lat is not None and bt is not None:
             if lat.shape[1] == 2 * bt.shape[1] and lat.shape[0] == bt.shape[0]:

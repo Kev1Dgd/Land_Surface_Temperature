@@ -89,8 +89,7 @@ A regression model is currently under development with the following characteris
 ├── src/
 │ ├── amsre/                                                   # AMSR-E processing, matching, plotting
 │ ├── land_cover/                                              # Land cover extraction and cleaning
-│ ├── merge/                                                   # Data fusion scripts
-│ ├── model/                                                   # Set of models for Machine Learning
+│ ├── machine_learning/                                        # Data fusion scripts & set of models for machine learning 
 │ ├── modis/                                                   # MODIS downloading, processing, analysis
 │ └── visualization/                                           # Difference map between MODIS and AMSRE by regression
 ├── docs/                                                      # Technical notes and references
