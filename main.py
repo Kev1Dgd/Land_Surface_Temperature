@@ -19,7 +19,7 @@ from sklearn.ensemble import RandomForestClassifier
 from src.modis.process import process_nc_to_csv_light, process_all_modis_csv
 from src.modis.plot import plot_temp_mean_Celsius, plot_temp_mean_Kelvin
 
-from src.amsre.download import download_amsre_ae_l2a
+from src.amsre.download import download_amsre_ae_l2a, authenticate
 from src.amsre.plot import plot_bt_map, plot_temp_estimated_map, plot_temp_mean_amsre_Kelvin, plot_temp_mean_amsre_Celsius
 from src.amsre.process import combine_amsre_files, merge_amsre_csvs_per_frequency
 from src.amsre.matches import generate_daily_matches
@@ -70,7 +70,7 @@ def main():
     ### MODIS PART ###
     
 
-    '''
+    
     print("\n===== MODIS stage: Land Surface Temperature =====")
 
     
@@ -86,13 +86,13 @@ def main():
         process_nc_to_csv_light(ds, f"data/processed/modis/modis_lst_{date_str}.csv", day_index=day, variable_name="LST_Day_1km")
     ds.close()
     process_all_modis_csv(input_folder="data/processed/modis", output_folder="outputs/modis/dates")
-    '''
+    
 
 
     ### AMSRE PART ### A EXECUTER POUR LES GRAPHES
     
 
-    '''
+    
     # === FOLDER DEFINITIONS ===
     OUTPUT_DIR = "outputs/amsre"
     OUTPUT_DIR_V = OUTPUT_DIR + "/vertical_polarization"
@@ -255,13 +255,13 @@ def main():
     
 
     print("\n===== END of AMSR-E TB and Temperature by Regression =====")
-    '''
+    
     
 
     ### FLUXNET & PLOTS PART ###
     
 
-    '''
+    
     print("\n=====📥 Analysis with FLUXNET 📥=====")
 
     fluxnet_path = "data/raw/fluxnet/FluxNET_AMSRE.csv"
@@ -453,12 +453,12 @@ def main():
         plot_seasonal_temp_with_tb_evolution(matched_folder1="data/processed/amsre/matched/19GHz/vertical", matched_folder2="data/processed/amsre/matched/19GHz/horizontal", output_dir="outputs/fluxnet", tb_min_threshold=230, freq_label="19ghz")
     else:
         print("⏭️ TB vs Temp graphics already generated for 19GHz, skip.")
-    '''    
+        
 
 
     ### Temperature generated from linear regression ### A EXECUTER POUR LES GRAPHES ET LES CSV
 
-    '''
+    
     # Plotting supposed temperature maps - AMSRE
     for date in dates :          
         if date == '2005-11-17' :
@@ -591,13 +591,13 @@ def main():
             plot_temp_estimated_map(pd.concat([df_ascending_19h, df_descending_19h]), date, pass_type="combined", freq_label="19ghz", a=aglob19h, b=bglob19h, polar="horizontal")
         else : 
             print("\n✅ [19GHz] horizontal - Combined supposed temperatures map already generated")
-    '''
+    
 
 
     ### Average temperature maps ### 
 
 
-    '''
+    
     input_dir = "data/processed/modis" 
     csv_dir_Kelvin = "data/processed/modis/mean_temperature/mean_temp_2005_Kelvin.csv"
     csv_dir_Celsius = "data/processed/modis/mean_temperature/mean_temp_2005_Celsius.csv"
@@ -708,13 +708,13 @@ def main():
         print(f"\n✅ Map of average annual temperatures in Celsius generated at {output_file_Celsius}")
     else : 
         print("\n✅ Map of average annual temperatures in Celsius already generated")
-    '''
+    
 
 
     ### Comparisons MODIS - AMSRE average maps ###
 
 
-    '''
+    
     # === MODIS vs AMSRE - Kelvin ===
 
     modis_csv_path_kelvin = "data/processed/modis/mean_temperature/mean_temp_2005_Kelvin.csv"
@@ -884,13 +884,13 @@ def main():
         print(f"🖼️ Map of the difference average annual temperatures between MODIS et AMSRE 37GHz (horizontal polarization) in Celsius generated at : {output_map_modis_37h_celsius}")
     else : 
         print("\n✅ Map of the difference average annual temperatures between MODIS et AMSRE 37GHz (horizontal polarization) in Celsius already generated")
-    '''
+    
 
 
     ### LAND COVER PART ###
 
 
-    '''
+    
     nc_path = "data/raw/land_cover/968_Land_Cover_Class_0.25degree.nc4"
     land_cover_map_output = "outputs/land_cover/land_cover_map.png"
     land_cover_csv_output = "data/processed/land_cover/land_cover_classes.csv"
@@ -904,12 +904,12 @@ def main():
             plot_land_cover_map(land_cover_path=nc_path,output_img_path=land_cover_map_output)
     else : 
             print("\n✅ Land Cover map already generated")
-    '''
+    
     
 
     ### MACHINE LEARNING ###
     
-    '''
+    
     # === FOLDER DEFINITIONS ===
     MERGED_FOLDER = "data/processed/machine_learning/dates"
     CLEANED_FILE = "data/processed/machine_learning/cleaned_data.csv"
@@ -1065,7 +1065,7 @@ def main():
     print(f"{'Model':<20} {'RMSE':<10} {'R²':<10}")
     for name, rmse, r2 in results:
         print(f"{name:<20} {rmse:<10.2f} {r2:<10.2f}")
-    '''
+    
 
     ### Comparison orbits and polarizations ###
 
@@ -1087,7 +1087,7 @@ def main():
     
     full_prediction_dir = "data/processed/comparisons/machine_learning/predictions"
     MEAN_TRUE_PATH = "data/processed/modis/mean_temperature/mean_temp_2005_Kelvin.csv"
-    '''
+    
     # === PIPELINE ===
     
     print("\n⏳ Processing of raw AMSRE files and calculation/saving of daily averages...")
@@ -1313,11 +1313,11 @@ def main():
 
     df_results.to_csv(os.path.join(full_output_dir, "summary_rf_features_set.csv"), index=False)
     print("✅ Loop completed for all feature sets.")
-    '''
+    
 
     ### Water detection ###
 
-    '''
+    
     # === FOLDER DEFINITIONS ===
     output_dir = "outputs/water_detection"
     output_dir_ml = os.path.join(output_dir, "machine_learning")
@@ -1456,7 +1456,7 @@ def main():
         print(f"\n✅ ROC curve already saved : {output_dir_roc_phy}")
 
     compare_swf_rf(y_test=y_test, y_pred_class_rf=y_pred_class_ml, y_proba_rf=y_proba_ml, y_true_swf=y_true_swf, y_swf_scores= y_swf_scores, output_dir=output_dir)
-    '''
+    
     
     ### Snow Detection ### 
 
@@ -1480,7 +1480,7 @@ def main():
     output_dir_features = os.path.join(output_dir_ml, "water_rf_binary_feature_importances.png")
 
     # === Snow detection using machine learning ===
-    '''
+    
     print("📥 Loading cleaned snow data...")
     df_ml = pd.read_csv(cleaned_data_path)
 
@@ -1565,7 +1565,7 @@ def main():
         plot_roc_curve_rf(y_test=y_test, y_proba=y_proba_ml, output_dir=output_dir_ml)
     else:
         print(f"\n✅ ROC curve already saved: {output_dir_roc_ml}")
-    '''
+    
 
     # === Snow detection using physics ===
 
