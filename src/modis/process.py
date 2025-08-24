@@ -40,6 +40,7 @@ def process_nc_to_csv_light(ds, output_csv, day_index, variable_name="LST_Day_1k
         df = df.groupby(["lat", "lon"], as_index=False).mean()
         df["LST_Celsius"] = df["LST_Kelvin"] - 273.15
         
+        os.makedirs(os.path.dirname(output_csv), exist_ok=True)
         df.to_csv(output_csv, index=False)
         print(f"✅ CSV sauvegardé : {output_csv}")
 

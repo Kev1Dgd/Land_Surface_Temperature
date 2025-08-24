@@ -6,7 +6,7 @@ import os
 from tqdm import tqdm
 
 
-def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", output_dir="outputs/amsre/dates/"):
+def plot_bt_map(df, date, pass_type, polar, freq_label, title=None, cmap="viridis", output_dir="outputs/amsre/dates/"):
     print(f"🗺️ Generation of the map for pass_type = {pass_type}...")
 
     # If you want the combined card (all the files)
@@ -20,7 +20,7 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
     df_filtered.loc[:, "lon_bin"] = df_filtered["longitude"].round(4)
 
     df_grouped = df_filtered.groupby(["lat_bin", "lon_bin"]).agg({
-        f"brightness_temp_{freq_label[:2]}v": "mean"
+        f"brightness_temp_{freq_label[:2]}{polar[0]}": "mean"
     }).reset_index()
 
     df_grouped.rename(columns={"lat_bin": "latitude", "lon_bin": "longitude"}, inplace=True)
@@ -30,7 +30,7 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
     os.makedirs(date_output_dir, exist_ok=True)
 
     fig = plt.figure(figsize=(12, 8))
-    ax = plt.axes(projection=n .PlateCarree())
+    ax = plt.axes(projection=ccrs.PlateCarree())
     ax.add_feature(cfeature.COASTLINE)
     ax.add_feature(cfeature.BORDERS, linestyle=':')
     vmin = 130
@@ -38,7 +38,7 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
 
     scatter = ax.scatter(
         df_grouped["longitude"], df_grouped["latitude"],
-        c=df_grouped[f"brightness_temp_{freq_label[:2]}v"], cmap=cmap, s=10,
+        c=df_grouped[f"brightness_temp_{freq_label[:2]}{polar[0]}"], cmap=cmap, s=10,
         transform=ccrs.PlateCarree(), alpha=0.7,
         vmin=vmin, vmax=vmax
     )
@@ -46,22 +46,28 @@ def plot_bt_map(df, date, pass_type, freq_label, title=None, cmap="viridis", out
     # If no title specified, define a default title
     if not title:
         if pass_type == "combined":
-            title = f"Brightness temperature {freq_label} – {date}"
+            title = f"Brightness temperature {freq_label} – {date} - {polar}"
         else:
-            title = f"Brightness temperature {freq_label} – {pass_type} - {date}"
+            title = f"Brightness temperature {freq_label} – {pass_type} - {date} - {polar}"
 
     plt.title(title)
     plt.colorbar(scatter, label=f"TB {freq_label} (K)", orientation="vertical", shrink=0.7, pad=0.05)
     ax.gridlines(draw_labels=True, x_inline=False, y_inline=False)
 
     if pass_type == "combined":
-        output_file = os.path.join(date_output_dir,"brightness_temperature", freq_label, f"tb_{freq_label}_map_{date}.png")
+        output_file = os.path.join(date_output_dir, "brightness_temperature", freq_label, f"tb_{freq_label}_map_{date}_{polar}.png")
     else:
-        output_file = os.path.join(date_output_dir,"brightness_temperature", freq_label, f"tb_{freq_label}_map_{date}_{pass_type}.png")
+        output_file = os.path.join(date_output_dir, "brightness_temperature", freq_label, f"tb_{freq_label}_map_{date}_{pass_type}_{polar}.png")
+
+    # ✅ Normalisation du chemin final
+    output_file = os.path.normpath(output_file)
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     plt.tight_layout()
     plt.savefig(output_file, dpi=600)
     plt.close()
+
+    # cleanup mémoire
     del df_filtered, df_grouped, fig, ax, scatter
     print(f"✅ Map saved in {output_file}")
 

@@ -82,10 +82,12 @@ A regression model is currently under development with the following characteris
 │ ├── amsre/
 │ ├── comparisons/
 │ ├── fluxnet/
+│ ├── fluxnet_vs_amsre/
 │ ├── land_cover/
 │ ├── machine_learning/
-│ └── modis/
-├── notebooks/                                                 # Development notebooks
+│ ├── modis/
+│ ├── snow_detection/
+│ └── water_detection/
 ├── src/
 │ ├── amsre/                                                   # AMSR-E processing, matching, plotting
 │ ├── land_cover/                                              # Land cover extraction and cleaning

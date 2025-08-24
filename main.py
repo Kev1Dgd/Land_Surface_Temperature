@@ -2,6 +2,8 @@
 
 import os
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")  
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import xarray as xr
@@ -117,7 +119,7 @@ def main():
         output_ascending_37v, output_descending_37v, output_ascending_37h, output_descending_37h = combine_amsre_files(files, date=date, frequency=37)
         output_ascending_19v, output_descending_19v, output_ascending_19h, output_descending_19h = combine_amsre_files(files, date=date, frequency=19)
         
-        merge_amsre_csvs_per_frequency(date)
+        #merge_amsre_csvs_per_frequency(date, "37")
         
         # === FOLDER DEFINITIONS ===
         OUTPUT_DIR_V_DAY = OUTPUT_DIR_V + "/dates"
@@ -126,7 +128,7 @@ def main():
         # == Maps Generation - Vertical polarization - 37GHz == 
         if output_ascending_37v and output_descending_37v:
         
-            print(f"\n===== AMSR-E Map Generation : TB_37GHz. Date : {date} =====")
+            print(f"\n===== AMSR-E Map Generation : TB_37GHz. Date : {date}. Polarization = vertical =====")
 
             df_ascending_37v = pd.read_csv(output_ascending_37v)
             df_descending_37v = pd.read_csv(output_descending_37v)
@@ -158,7 +160,7 @@ def main():
         # == Maps Generation - Horizontal polarization - 37GHz ==
         if output_ascending_37h and output_descending_37h:
         
-            print(f"\n===== AMSR-E Map Generation : TB_37GHz. Date : {date} =====")
+            print(f"\n===== AMSR-E Map Generation : TB_37GHz. Date : {date}. Polarization = horizontal  =====")
 
             # Loading renamed files
             df_ascending_37h = pd.read_csv(output_ascending_37h)
@@ -192,7 +194,7 @@ def main():
         # == Maps Generation - Vertical polarization - 19GHz == 
         if output_ascending_19v and output_descending_19v:
         
-            print(f"\n===== AMSR-E Map Generation : TB_19GHz. Date : {date} =====")
+            print(f"\n===== AMSR-E Map Generation : TB_19GHz. Date : {date}. Polarization = vertical =====")
 
             df_ascending_19v = pd.read_csv(output_ascending_19v)
             df_descending_19v = pd.read_csv(output_descending_19v)
@@ -224,7 +226,7 @@ def main():
         # Maps Generation - Horizontal polarization - 19GHz
         if output_ascending_19h and output_descending_19h:
         
-            print(f"\n===== AMSR-E Map Generation : TB_19GHz. Date : {date} =====")
+            print(f"\n===== AMSR-E Map Generation : TB_19GHz. Date : {date}. Polarization = horizontal  =====")
 
             df_ascending_19h = pd.read_csv(output_ascending_19h)
             df_descending_19h = pd.read_csv(output_descending_19h)
