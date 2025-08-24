@@ -62,7 +62,7 @@ A regression model is currently under development with the following characteris
 
 ## ⚙️ Tools & Technologies
 
-- **Python Libraries**: `numpy`, `pandas`, `xarray`, `matplotlib`, `scikit-learn`, `netCDF4`, `pyhdf`, `rasterio`
+- **Python Libraries**: `numpy`, `pandas`, `xarray`, `matplotlib`, `scikit-learn`, `netCDF4`, `pyhdf`, `rasterio`, ...
 - **Data formats**: `.hdf`, `.nc`, `.csv`, `.png`
 - **Data Sources**:
   - AMSR-E, MODIS (NASA)
@@ -126,6 +126,7 @@ Outputs are saved in `.png` format under `outputs/`. Main categories:
 - `outputs/fluxnet/seasonal_evolution/`: LST trends per station
 - `outputs/fluxnet/seasonal_temp_tb/`: Seasonal plots TB vs LST
 - `outputs/modis/dates/`: LST maps from MODIS
+- `...`
 
 ---
 
