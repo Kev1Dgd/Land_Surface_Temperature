@@ -130,6 +130,13 @@ Outputs are saved in `.png` format under `outputs/`. Main categories:
 
 ---
 
+## 📂 Données brutes MODIS
+
+The raw MODIS file used in this project is available here :  
+🔗 [MOD11A1.061_1km_aid0001.nc](https://www.dropbox.com/scl/fi/4rf79wadpvmxvd97r216z/MOD11A1.061_1km_aid0001.nc?rlkey=q3o079vvjiv93tlgvqndumjgv&st=xg8sj5zh&dl=0)
+
+👉 It must be placed in the following folder in the repository : `data/raw/modis`
+
 ## ⚠️ Execution Notes
 
 - **Missing Columns**: CSVs missing expected fields (e.g. `brightness_temp_37v`, `temperature`) are skipped
